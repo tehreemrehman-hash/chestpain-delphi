@@ -20,8 +20,8 @@
     --gold-tint:   #F7EFD8;
     --cream:       #FAF7F0;
     --light:       #E8E4DB;
-    --grey:        #6B6B6B;
-    --grey-dark:   #595959;         /* for lock indicator and other UI affordances (>=3:1) */
+    --grey:        #595959;         /* body/muted text — 5.3:1 on white/cream (WCAG AA) */
+    --grey-dark:   #4A4A4A;         /* stronger grey for lock indicator, pill-scale, sub-labels */
     --ink:         #2A2A2A;
     --white:       #FFFFFF;
     --shadow:      0 2px 12px rgba(31, 58, 95, 0.08);
@@ -30,6 +30,15 @@
 
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
+
+  /* Skip-to-content link — visually hidden until focused by Tab */
+  .skip-link {
+    position: absolute; top: -100px; left: 8px; z-index: 1000;
+    background: var(--navy); color: white; padding: 10px 16px;
+    border-radius: 0 0 6px 6px; font-weight: 700; font-size: 14px;
+    text-decoration: none; transition: top 0.12s;
+  }
+  .skip-link:focus { top: 0; outline: 2px solid var(--coral); outline-offset: 2px; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
     background: var(--cream);
@@ -82,7 +91,7 @@
     font-weight: 700; font-size: 15px; cursor: pointer; transition: background 0.15s;
   }
   #gate button:hover { background: var(--navy-dark); }
-  #gate .gate-error { color: var(--coral); font-size: 13px; margin-top: 10px; min-height: 1.2em; }
+  #gate .gate-error { color: #B2431F; font-weight: 600; font-size: 13px; margin-top: 10px; min-height: 1.2em; }  /* 5.0:1 on white */
   #gate .gate-hint { font-size: 12px; color: var(--grey); margin-top: 18px;
     padding-top: 16px; border-top: 1px solid var(--light); }
 
@@ -120,9 +129,18 @@
   }
   nav.tabs button.active::after {
     content: ""; position: absolute; left: 14px; right: 14px; bottom: 0;
-    height: 3px; background: var(--coral); border-radius: 3px 3px 0 0;
+    height: 3px; background: var(--teal); border-radius: 3px 3px 0 0;
   }
-  nav.tabs .lock-ind { font-size: 10px; color: var(--grey-dark); margin-left: 4px; }
+  nav.tabs .lock-ind {
+    display: inline-block; margin-left: 6px; padding: 2px 6px;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+    background: var(--light); color: var(--grey-dark);
+    border-radius: 3px; vertical-align: 1px;
+  }
+  nav.tabs .lock-ind.open {
+    background: var(--teal-tint); color: var(--teal-text);
+  }
+  nav.tabs .lock-ind[hidden] { display: none; }
 
   /* ---------- MAIN ---------- */
   main { padding: 28px 32px 60px; max-width: 1400px; margin: 0 auto; }
@@ -228,7 +246,10 @@
     background: white; border: 1px solid var(--light); border-radius: 8px;
     padding: 18px 20px; margin-bottom: 14px;
     box-shadow: var(--shadow);
+    border-top: 2px solid var(--light); /* overridden by domain below */
   }
+  .vote-card.kind-order { border-top-color: var(--teal); }
+  .vote-card.kind-data  { border-top-color: var(--coral); }
   .vote-card.complete { border-left: 4px solid var(--teal); }
   .vote-card .vc-header {
     display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: start;
@@ -272,7 +293,7 @@
     display: flex; gap: 6px;
   }
   .pill-btn {
-    flex: 1; min-width: 36px; padding: 8px 0;
+    flex: 1; min-width: 44px; min-height: 44px; padding: 10px 0;
     background: var(--white); border: 1.5px solid var(--light); border-radius: 6px;
     font-family: inherit; font-size: 14px; font-weight: 700; color: var(--navy);
     cursor: pointer; transition: all 0.12s;
@@ -285,7 +306,7 @@
   .pill-btn.active.effort { background: var(--coral); border-color: var(--coral); }
   .pill-btn.active.impact { background: var(--teal); border-color: var(--teal); }
   .pill-btn.active.interest { background: var(--gold); color: var(--gold-text); border-color: var(--gold); }
-  .pill-btn:focus-visible { outline: 2px solid var(--teal-text); outline-offset: 2px; }
+  .pill-btn:focus-visible { outline: 2px solid var(--teal-text); outline-offset: 3px; }
   .pill-scale {
     display: flex; justify-content: space-between;
     font-size: 10px; color: var(--grey); margin-top: 4px;
@@ -305,11 +326,14 @@
   .progress-label { font-size: 13px; color: var(--grey); }
   .progress-label strong { color: var(--navy); }
   .progress-bar {
-    flex: 1; height: 8px; background: var(--light); border-radius: 4px; overflow: hidden;
+    flex: 1; height: 12px; background: var(--light); border-radius: 6px; overflow: hidden;
   }
   .progress-fill {
     height: 100%; background: linear-gradient(90deg, var(--teal), var(--navy));
-    width: 0%; transition: width 0.25s;
+    width: 0%; transition: width 0.25s, background 0.3s;
+  }
+  .progress-fill.complete {
+    background: linear-gradient(90deg, var(--teal), var(--teal-text));
   }
 
   /* ---------- SUBMIT BUTTONS & CODE OUTPUT ---------- */
@@ -331,6 +355,7 @@
     border-radius: 5px; background: var(--cream); color: var(--ink);
     resize: vertical; word-break: break-all; white-space: pre-wrap;
   }
+  .code-reveal { animation: fadeIn 0.2s; }
   .code-actions {
     margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap;
   }
@@ -404,6 +429,8 @@
 </head>
 <body>
 
+<a href="#main" class="skip-link">Skip to main content</a>
+
 <!-- ========== ACCESS GATE ========== -->
 <div id="gate">
   <div class="gate-card">
@@ -436,20 +463,20 @@
 
 <!-- ========== NAV ========== -->
 <nav class="tabs" role="tablist" aria-label="Delphi platform sections">
-  <button class="active" role="tab" aria-selected="true"  aria-controls="overview"  data-tab="overview">Overview</button>
-  <button              role="tab" aria-selected="false" aria-controls="dashboard" data-tab="dashboard">Data Dashboard</button>
-  <button              role="tab" aria-selected="false" aria-controls="context"   data-tab="context">Context &amp; Method</button>
-  <button              role="tab" aria-selected="false" aria-controls="round1"    data-tab="round1">R1 Rating</button>
-  <button              role="tab" aria-selected="false" aria-controls="r1results" data-tab="r1results">R1 Results<span class="lock-ind" id="lock-r1" aria-label="Locked until Round 1 closes" title="Opens after Round 1 closes">&#128274;</span></button>
-  <button              role="tab" aria-selected="false" aria-controls="round2"    data-tab="round2">R2 Rating<span class="lock-ind" id="lock-r2req" aria-label="Locked until Round 1 discussion complete" title="Opens after task force discusses R1 results">&#128274;</span></button>
-  <button              role="tab" aria-selected="false" aria-controls="r2results" data-tab="r2results">R2 Results<span class="lock-ind" id="lock-r2" aria-label="Locked until Round 2 closes" title="Opens after Round 2 closes">&#128274;</span></button>
-  <button              role="tab" aria-selected="false" aria-controls="admin"     data-tab="admin">Admin</button>
+  <button id="tab-overview"  class="active" role="tab" aria-selected="true"  aria-controls="overview"  data-tab="overview">Overview</button>
+  <button id="tab-dashboard"               role="tab" aria-selected="false" aria-controls="dashboard" data-tab="dashboard">Data Dashboard</button>
+  <button id="tab-context"                 role="tab" aria-selected="false" aria-controls="context"   data-tab="context">Context &amp; Method</button>
+  <button id="tab-round1"                  role="tab" aria-selected="false" aria-controls="round1"    data-tab="round1">R1 Rating</button>
+  <button id="tab-r1results"               role="tab" aria-selected="false" aria-controls="r1results" data-tab="r1results">R1 Results<span class="lock-ind" id="lock-r1" aria-label="Locked until Round 1 closes" title="Opens after Round 1 closes">LOCKED</span></button>
+  <button id="tab-round2"                  role="tab" aria-selected="false" aria-controls="round2"    data-tab="round2">R2 Rating<span class="lock-ind" id="lock-r2req" aria-label="Locked until Round 1 discussion complete" title="Opens after task force discusses R1 results">LOCKED</span></button>
+  <button id="tab-r2results"               role="tab" aria-selected="false" aria-controls="r2results" data-tab="r2results">R2 Results<span class="lock-ind" id="lock-r2" aria-label="Locked until Round 2 closes" title="Opens after Round 2 closes">LOCKED</span></button>
+  <button id="tab-admin"                   role="tab" aria-selected="false" aria-controls="admin"     data-tab="admin">Admin</button>
 </nav>
 
-<main>
+<main id="main" tabindex="-1">
 
 <!-- ========== OVERVIEW ========== -->
-<section id="overview" class="tab-content active" role="tabpanel">
+<section id="overview" class="tab-content active" role="tabpanel" aria-labelledby="tab-overview" tabindex="-1">
 
   <div class="card-grid">
     <div class="stat-card">
@@ -518,7 +545,7 @@
 </section>
 
 <!-- ========== ROUND 1 ========== -->
-<section id="round1" class="tab-content" role="tabpanel" aria-labelledby="tab-round1">
+<section id="round1" class="tab-content" role="tabpanel" aria-labelledby="tab-round1" tabindex="-1">
 
   <div class="banner">
     <strong>Round 1 is open.</strong> Rate all 24 initiatives on Effort, Impact, and Interest (1-5 each), plus an optional comment per initiative. Budget ~15 minutes. Your ratings save to your browser as you click &mdash; no form to submit mid-way. When done, click <strong>Submit my ratings</strong> at the bottom.
@@ -557,15 +584,18 @@
 
     <button id="r1-submit-btn" class="submit-btn" onclick="generateSubmissionCode(1)">Generate submission code</button>
 
-    <div id="r1-code-output" style="display:none;margin-top:18px;">
-      <label class="small" style="display:block;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Your submission code</label>
+    <div id="r1-code-output" class="code-reveal" style="display:none;margin-top:18px;">
+      <label class="small" for="r1-code-text" style="display:block;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Your submission code</label>
+      <p class="small muted" style="margin:0 0 8px 0;">
+        This long string is your vote, encoded. You don't need to read or edit it &mdash; just send it.
+      </p>
       <textarea id="r1-code-text" class="code-output" readonly onclick="this.select()"></textarea>
       <div class="code-actions">
         <button class="submit-btn secondary" onclick="copyCode(1)">Copy to clipboard</button>
         <button class="submit-btn" onclick="emailCode(1)">Email to Tehreem</button>
       </div>
       <p class="small muted" style="margin-top:10px;">
-        <strong>What happens next:</strong> clicking <em>Email to Tehreem</em> opens your mail app with the code pre-filled. Just press Send.
+        <strong>What happens next:</strong> clicking <em>Email to Tehreem</em> opens your mail app with the code pre-filled and addressed to <a href="mailto:tehreem.rehman@mountsinai.org">tehreem.rehman@mountsinai.org</a>. Just press Send.
         Prefer to paste into an existing email thread? Use <em>Copy to clipboard</em> instead.
       </p>
     </div>
@@ -574,7 +604,7 @@
 </section>
 
 <!-- ========== R1 RESULTS ========== -->
-<section id="r1results" class="tab-content" role="tabpanel">
+<section id="r1results" class="tab-content" role="tabpanel" aria-labelledby="tab-r1results" tabindex="-1">
 
   <div id="r1-locked" class="placeholder">
     <strong>Round 1 results are not yet released.</strong><br>
@@ -603,7 +633,7 @@
 </section>
 
 <!-- ========== ROUND 2 ========== -->
-<section id="round2" class="tab-content" role="tabpanel">
+<section id="round2" class="tab-content" role="tabpanel" aria-labelledby="tab-round2" tabindex="-1">
 
   <div id="r2-locked" class="placeholder">
     <strong>Round 2 has not opened yet.</strong><br>
@@ -643,13 +673,19 @@
 
       <button class="submit-btn" onclick="generateSubmissionCode(2)">Generate submission code</button>
 
-      <div id="r2-code-output" style="display:none;margin-top:18px;">
-        <label class="small" style="display:block;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Your submission code</label>
+      <div id="r2-code-output" class="code-reveal" style="display:none;margin-top:18px;">
+        <label class="small" for="r2-code-text" style="display:block;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Your submission code</label>
+        <p class="small muted" style="margin:0 0 8px 0;">
+          This long string is your vote, encoded. You don't need to read or edit it &mdash; just send it.
+        </p>
         <textarea id="r2-code-text" class="code-output" readonly onclick="this.select()"></textarea>
         <div class="code-actions">
           <button class="submit-btn secondary" onclick="copyCode(2)">Copy to clipboard</button>
           <button class="submit-btn" onclick="emailCode(2)">Email to Tehreem</button>
         </div>
+        <p class="small muted" style="margin-top:10px;">
+          <strong>What happens next:</strong> clicking <em>Email to Tehreem</em> opens your mail app with the code pre-filled and addressed to <a href="mailto:tehreem.rehman@mountsinai.org">tehreem.rehman@mountsinai.org</a>. Just press Send.
+        </p>
       </div>
     </div>
 
@@ -658,7 +694,7 @@
 </section>
 
 <!-- ========== R2 RESULTS ========== -->
-<section id="r2results" class="tab-content" role="tabpanel">
+<section id="r2results" class="tab-content" role="tabpanel" aria-labelledby="tab-r2results" tabindex="-1">
 
   <div id="r2r-locked" class="placeholder">
     <strong>Round 2 results are not yet released.</strong><br>
@@ -693,7 +729,7 @@
 </section>
 
 <!-- ========== DATA DASHBOARD ========== -->
-<section id="dashboard" class="tab-content" role="tabpanel">
+<section id="dashboard" class="tab-content" role="tabpanel" aria-labelledby="tab-dashboard" tabindex="-1">
 
   <div class="card">
     <h2>Chest pain ordering dashboard</h2>
@@ -707,7 +743,7 @@
 </section>
 
 <!-- ========== CONTEXT & METHOD ========== -->
-<section id="context" class="tab-content" role="tabpanel">
+<section id="context" class="tab-content" role="tabpanel" aria-labelledby="tab-context" tabindex="-1">
 
   <div class="card">
     <h2>Project charter (for context)</h2>
@@ -749,7 +785,7 @@
 </section>
 
 <!-- ========== ADMIN ========== -->
-<section id="admin" class="tab-content" role="tabpanel">
+<section id="admin" class="tab-content" role="tabpanel" aria-labelledby="tab-admin" tabindex="-1">
 
   <div id="admin-locked" class="card">
     <h2>Admin panel</h2>
@@ -811,6 +847,22 @@
     </div>
 
     <div class="card">
+      <h2>Meeting 2 prep (LLM brief generator)</h2>
+      <p class="small muted">
+        Generates a ready-to-paste prompt that synthesizes all free-text comments into 2-4 themes per initiative, with representative quotes. Paste the output into Claude or ChatGPT before Meeting 2 to save ~2 hours of manual synthesis.
+      </p>
+      <button class="submit-btn" onclick="generateMeetingBrief(1)">Generate R1 prep prompt</button>
+      <button class="submit-btn secondary" onclick="generateMeetingBrief(2)">Generate R2 prep prompt</button>
+      <div id="brief-output" style="display:none;margin-top:12px;">
+        <label class="small" for="brief-text" style="display:block;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Paste this into Claude or ChatGPT</label>
+        <textarea id="brief-text" class="code-output" readonly onclick="this.select()" style="min-height:220px;"></textarea>
+        <div class="code-actions">
+          <button class="submit-btn secondary" onclick="copyBrief()">Copy brief to clipboard</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Backup / restore</h2>
       <p class="small muted">Export all aggregated submissions as JSON (keep a copy in case you clear browser storage). Restore by pasting the JSON back here.</p>
       <button class="submit-btn secondary" onclick="exportAll()">Export all submissions (.json)</button>
@@ -829,8 +881,14 @@
 </main>
 
 <footer>
-  Mount Sinai Hospital &middot; Department of Emergency Medicine &middot; Front-End Care Standardization Task Force<br>
-  Platform built on the multidimensional Delphi pattern. Last updated 2026-04-21.
+  <div>Mount Sinai Hospital &middot; Department of Emergency Medicine &middot; Front-End Care Standardization Task Force</div>
+  <div style="margin-top:6px;">Platform built on the multidimensional Delphi pattern.</div>
+  <div style="margin-top:6px;font-size:11px;color:var(--grey-dark);">
+    Version 1.1 &middot; Last updated 2026-04-21 &middot; Source: <a href="https://github.com/tehreemr/chestpain-delphi" target="_blank" rel="noopener">github.com/tehreemr/chestpain-delphi</a>
+  </div>
+  <div style="margin-top:4px;font-size:11px;color:var(--grey-dark);">
+    Contact: <a href="mailto:tehreem.rehman@mountsinai.org">tehreem.rehman@mountsinai.org</a>
+  </div>
 </footer>
 
 <!-- ========== CONFIGURATION ========== -->
@@ -845,7 +903,7 @@ const CONFIG = {
   ADMIN_PASSWORD: "admin-chestpain-2026",
 
   // Where submission codes get emailed (opens the member's default mail client pre-filled)
-  ADMIN_EMAIL:    "tehreemrehman@gmail.com",
+  ADMIN_EMAIL:    "tehreem.rehman@mountsinai.org",
 
   // Convergence threshold — group SD at or below this is "converged" on that dimension
   SD_CONVERGE: 0.75,
@@ -1064,10 +1122,56 @@ function switchTab(name) {
   if (name === "r1results") maybeRenderResults(1);
   if (name === "r2results") maybeRenderResults(2);
   window.scrollTo({top: 0, behavior: "smooth"});
+  // Move focus into the new panel so keyboard + screen reader users land inside content.
+  // Guard against the initial page load where no button was clicked (fromClick=false).
+  const panel = document.getElementById(name);
+  if (panel && document.activeElement && document.activeElement.closest('nav.tabs')) {
+    // Only shift focus if the user triggered this from the tablist — avoids jumping on load.
+    panel.focus({preventScroll: true});
+  }
 }
 document.querySelectorAll("nav.tabs button").forEach(btn => {
   btn.addEventListener("click", () => switchTab(btn.dataset.tab));
 });
+
+// ----------  ROVING TABINDEX + ARROW-KEY NAVIGATION ON TABLIST ----------
+// WAI-ARIA tab widget pattern: only the active tab is in the Tab cycle (tabindex=0);
+// inactive tabs are reachable via Left/Right/Home/End while focus is inside the tablist.
+(function () {
+  const tabs = Array.from(document.querySelectorAll('nav.tabs button[role="tab"]'));
+  if (!tabs.length) return;
+  function setRovingTabIndex(activeName) {
+    tabs.forEach(t => {
+      t.tabIndex = (t.dataset.tab === activeName) ? 0 : -1;
+    });
+  }
+  // Initialize to current active tab
+  const initial = tabs.find(t => t.classList.contains("active")) || tabs[0];
+  setRovingTabIndex(initial.dataset.tab);
+  // Keep roving index synced with user tab switches
+  tabs.forEach(btn => {
+    btn.addEventListener("click", () => setRovingTabIndex(btn.dataset.tab));
+  });
+  // Arrow-key navigation
+  const tablist = document.querySelector('nav.tabs[role="tablist"]');
+  if (!tablist) return;
+  tablist.addEventListener("keydown", (e) => {
+    const current = document.activeElement;
+    if (!tabs.includes(current)) return;
+    const idx = tabs.indexOf(current);
+    let nextIdx = null;
+    if (e.key === "ArrowRight") nextIdx = (idx + 1) % tabs.length;
+    else if (e.key === "ArrowLeft") nextIdx = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === "Home") nextIdx = 0;
+    else if (e.key === "End") nextIdx = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    const next = tabs[nextIdx];
+    next.focus();
+    switchTab(next.dataset.tab);
+    setRovingTabIndex(next.dataset.tab);
+  });
+})();
 
 // ----------  VOTE CARDS + IDENTITY + PROGRESS ----------
 function ratingKey(round)      { return `cp-delphi-r${round}-ratings`; }
@@ -1110,7 +1214,9 @@ function saveRating(round, id, dim, val) {
   const card = document.querySelector(`.vote-card[data-id="${id}"][data-round="${round}"]`);
   if (card) {
     card.querySelectorAll(`.pill-btn[data-dim="${dim}"]`).forEach(b => {
-      b.classList.toggle("active", Number(b.dataset.val) === val);
+      const selected = Number(b.dataset.val) === val;
+      b.classList.toggle("active", selected);
+      b.setAttribute("aria-pressed", selected ? "true" : "false");
     });
   }
   updateProgress(round);
@@ -1145,13 +1251,15 @@ function renderVoteCards(round) {
       const ter = saved.T != null ? saved.T : (pref.T != null ? pref.T : null);
       const cm  = (comments[it.id] || "").replace(/</g, "&lt;");
       const pillRow = (dim, cur) => {
-        let r = `<div class="pill-row" data-dim-row="${dim}">`;
+        const dimFullName = dim === "E" ? "Effort" : (dim === "I" ? "Impact" : "Interest");
+        let r = `<div class="pill-row" role="radiogroup" aria-label="${dimFullName} rating 1 to 5 for initiative ${it.id} — ${it.title.replace(/"/g,"&quot;")}" data-dim-row="${dim}">`;
         for (let v = 1; v <= 5; v++) {
           const act = cur === v ? ` active ${dimClass(dim)}` : "";
-          r += `<button type="button" class="pill-btn${act}" data-dim="${dim}" data-val="${v}"
+          const pressed = cur === v ? "true" : "false";
+          r += `<button type="button" class="pill-btn${act}" data-dim="${dim}" data-val="${v}" aria-pressed="${pressed}" aria-label="${dimFullName} ${v} of 5"
                    onclick="saveRating(${round}, ${it.id}, '${dim}', ${v})">${v}</button>`;
         }
-        r += `<span class="pill-scale">1 = low &middot; 5 = high</span></div>`;
+        r += `<span class="pill-scale" aria-hidden="true">1 = low &middot; 5 = high</span></div>`;
         return r;
       };
       const prefNote = (round === 2 && saved.E == null && saved.I == null && saved.T == null
@@ -1159,7 +1267,7 @@ function renderVoteCards(round) {
         ? `<div class="vc-pre">Your Round 1 rating is pre-filled below. Click any pill to confirm or change.</div>`
         : "";
       html += `
-        <div class="vote-card" data-id="${it.id}" data-round="${round}">
+        <div class="vote-card kind-${it.kind}" data-id="${it.id}" data-round="${round}">
           <div class="vc-header">
             <div class="id-badge ${it.kind}">${it.id}</div>
             <div class="vc-title-block">
@@ -1223,7 +1331,10 @@ function updateProgress(round) {
   const label = document.getElementById(`r${round}-progress`);
   if (label) label.textContent = `${done} / ${INITIATIVES.length}`;
   const bar = document.getElementById(`r${round}-progress-bar`);
-  if (bar) bar.style.width = `${(done / INITIATIVES.length) * 100}%`;
+  if (bar) {
+    bar.style.width = `${(done / INITIATIVES.length) * 100}%`;
+    bar.classList.toggle("complete", done === INITIATIVES.length);
+  }
   const warn = document.getElementById(`r${round}-submit-warning`);
   if (warn) {
     if (done === 0) warn.textContent = "No ratings yet.";
@@ -1338,9 +1449,22 @@ function applyLockState() {
   document.getElementById("r2r-locked").style.display   = r2 === "unlocked" ? "none" : "block";
   document.getElementById("r2r-unlocked").style.display = r2 === "unlocked" ? "block" : "none";
 
-  document.getElementById("lock-r1").innerHTML    = r1 === "unlocked" ? "&#128275;" : "&#128274;";
-  document.getElementById("lock-r2req").innerHTML = r2req === "unlocked" ? "&#128275;" : "&#128274;";
-  document.getElementById("lock-r2").innerHTML    = r2 === "unlocked" ? "&#128275;" : "&#128274;";
+  const setLockPill = (id, state, openLabel) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isOpen = state === "unlocked";
+    el.textContent = isOpen ? "OPEN" : "LOCKED";
+    el.classList.toggle("open", isOpen);
+    if (isOpen) {
+      el.setAttribute("aria-label", openLabel);
+      el.removeAttribute("title");
+    } else {
+      el.setAttribute("aria-label", el.getAttribute("aria-label") || "Locked");
+    }
+  };
+  setLockPill("lock-r1",    r1,    "Round 1 results are open");
+  setLockPill("lock-r2req", r2req, "Round 2 rating is open");
+  setLockPill("lock-r2",    r2,    "Round 2 results are open");
 
   for (const k of ["r1","r2req","r2"]) {
     const btn = document.getElementById("tog-" + k);
@@ -1353,6 +1477,10 @@ function applyLockState() {
 function toggleLock(key) {
   setLock(key, getLock(key) === "unlocked" ? "locked" : "unlocked");
   applyLockState();
+  // When a results tab becomes visible, (re)draw its scatter/tables — otherwise
+  // the div is visible but empty because Plotly was never called into it.
+  if (key === "r1") rerenderResults(1);
+  if (key === "r2") rerenderResults(2);
 }
 
 // ----------  ADMIN GATE ----------
@@ -1425,6 +1553,13 @@ function aggregateRound(round) {
   const final = Array.from(merged.values()).sort((a, b) => (a.n || "").localeCompare(b.n || ""));
   saveSubmissions(round, final);
 
+  // Auto-backup: trigger a browser download of the full submission set after every aggregation.
+  // This protects against the #1 operational failure mode — admin clears browser cache and loses state.
+  if (final.length > 0) {
+    try { autoBackup(round, final); }
+    catch (e) { console.warn("Auto-backup failed (non-fatal):", e); }
+  }
+
   const status = document.getElementById(`r${round}-agg-status`);
   if (status) {
     const nowList = final.map(s => `${s.n} (${s.v.length} rated)`).join(", ");
@@ -1460,6 +1595,30 @@ function exportAll() {
   URL.revokeObjectURL(url);
 }
 
+// Automatic post-aggregation backup. Writes a round-specific JSON snapshot to the admin's Downloads folder.
+// Fires every time aggregateRound() completes with at least one submission — belt and suspenders for
+// the localStorage-only architecture. Admin can (and should) still manually Export all submissions too.
+function autoBackup(round, submissions) {
+  const now = new Date();
+  const stamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);   // e.g. 2026-04-21T14-32-07
+  const out = {
+    kind: "chest-pain-delphi-auto-backup",
+    round: round,
+    generatedAt: now.toISOString(),
+    count: submissions.length,
+    submissions: submissions,
+  };
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `chestpain-delphi-R${round}-autobackup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function restoreAll() {
   const ta = document.getElementById("restore-paste");
   if (!ta || !ta.value.trim()) return;
@@ -1480,6 +1639,91 @@ function restoreAll() {
 }
 
 function truncate(s, n) { return s.length <= n ? s : s.slice(0, n - 1) + "\u2026"; }
+
+// ----------  MEETING 2 LLM BRIEF GENERATOR ----------
+// Assembles a paste-ready prompt that asks an LLM (Claude / ChatGPT) to cluster free-text
+// comments into themes per initiative, flag hidden disagreements, and produce a Meeting 2 agenda.
+// Zero data leaves the admin's browser until Tehreem chooses to paste into an external tool.
+function generateMeetingBrief(round) {
+  const subs = loadSubmissions(round);
+  if (!subs.length) {
+    alert(`No Round ${round} submissions aggregated yet. Aggregate codes first.`);
+    return;
+  }
+  const tallied = tallyFromSubmissions(subs);
+  // Build a compact summary: per initiative → {id, title, E mean/sd, I mean/sd, T mean/sd, comments:[]}
+  const compact = INITIATIVES.map(it => {
+    const t = tallied.find(x => x.id === it.id);
+    const comments = subs
+      .map(s => {
+        const r = s.v.find(v => v.i === it.id);
+        return (r && r.c) ? { by: s.n || "Anon", text: r.c.trim() } : null;
+      })
+      .filter(Boolean);
+    return {
+      id: it.id,
+      title: it.title,
+      domain: it.kind === "order" ? "Order Set Design" : "Data Analysis",
+      category: it.cat,
+      anchor: it.anchor,
+      target: it.target,
+      mean: { E: t?.mE ?? null, I: t?.mI ?? null, T: t?.mT ?? null },
+      sd:   { E: t?.sdE ?? null, I: t?.sdI ?? null, T: t?.sdT ?? null },
+      n_rated: t?.n ?? 0,
+      comments: comments,
+    };
+  });
+  const prompt =
+`You are helping the Mount Sinai Emergency Medicine Front-End Care Standardization Task Force prepare for Meeting 2 of a modified Delphi on 24 chest-pain order-set and data-analysis initiatives.
+
+Round ${round} just closed. I am giving you per-initiative summary statistics (Effort × Impact × Interest on a 1-5 scale, with mean and SD across panelists) plus every free-text comment members left.
+
+Your job is to produce a Meeting 2 briefing document with the following structure:
+
+1. **Top 5 initiatives with the most panel disagreement.** Rank by composite SD across E, I, T. For each, summarize the 2-4 distinct viewpoints present in the comments, with one representative quote per viewpoint (attribute by name). Flag any "sneaky disagreements" — items with low numerical SD but heterogeneous qualitative reasoning.
+
+2. **Quick wins with consensus** (E ≤ 2.5 mean AND I ≥ 3.0 mean AND all three SDs ≤ 0.75). Briefly confirm consensus from the comments and name any caveats worth a sentence at the meeting.
+
+3. **Strategic bets worth discussing** (E > 2.5 AND I ≥ 3.5). Summarize the "is it worth the effort" debate from comments.
+
+4. **Items to potentially drop or defer** (I < 3.0). Summarize why panelists deprioritized them.
+
+5. **Proposed Meeting 2 agenda** — a 45-minute time-boxed walkthrough: which items to discuss, in what order, what decision to make on each (Advance to R2 unchanged · Revise wording · Drop · Needs more data).
+
+6. **Cross-cutting themes** across all comments (e.g., "many members concerned about alert fatigue", "repeated ask for pharmacy workflow alignment"). Max 5 themes.
+
+Keep quotes verbatim. Preserve attribution. Do not invent data that isn't in the input.
+
+---
+ROUND: ${round}
+GENERATED: ${new Date().toISOString()}
+PANEL SIZE (with at least one rating): ${subs.length}
+---
+
+DATA:
+${JSON.stringify(compact, null, 2)}
+`;
+  const ta = document.getElementById("brief-text");
+  const wrap = document.getElementById("brief-output");
+  if (ta) ta.value = prompt;
+  if (wrap) {
+    wrap.style.display = "block";
+    wrap.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
+function copyBrief() {
+  const ta = document.getElementById("brief-text");
+  if (!ta || !ta.value) return;
+  ta.select();
+  const btn = event && event.target ? event.target : null;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(() => flashButton(btn, "Copied!"));
+  } else {
+    document.execCommand("copy");
+    flashButton(btn, "Copied!");
+  }
+}
 
 // ----------  TALLY LOCAL SUBMISSIONS ----------
 function tallyFromSubmissions(subs) {
@@ -1691,6 +1935,9 @@ window.addEventListener("DOMContentLoaded", () => {
   updateProgress(1);
   updateProgress(2);
   applyLockState();
+  // Draw result tabs on page load so a reopen after prior aggregation still shows charts.
+  rerenderResults(1);
+  rerenderResults(2);
 });
 </script>
 
