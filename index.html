@@ -1,0 +1,1698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chest Pain Order Set Prioritization — Front-End Care Standardization Task Force</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  /* ---------- CSS VARIABLES & BRAND ---------- */
+  :root {
+    --navy:        #1F3A5F;
+    --navy-dark:   #15273F;
+    --teal:        #2D8B8B;         /* brand — backgrounds / large text only */
+    --teal-text:   #1E6969;         /* a11y-safe teal for body text and links (4.8:1 on white) */
+    --teal-tint:   #E3F0EE;
+    --coral:       #E07856;         /* brand accent — never used for body text */
+    --coral-tint:  #F8E4D9;
+    --gold:        #D4A547;         /* brand accent — never used for body text */
+    --gold-text:   #6B5518;         /* a11y-safe dark gold for pill text (5.6:1 on gold-tint) */
+    --gold-tint:   #F7EFD8;
+    --cream:       #FAF7F0;
+    --light:       #E8E4DB;
+    --grey:        #6B6B6B;
+    --grey-dark:   #595959;         /* for lock indicator and other UI affordances (>=3:1) */
+    --ink:         #2A2A2A;
+    --white:       #FFFFFF;
+    --shadow:      0 2px 12px rgba(31, 58, 95, 0.08);
+    --shadow-lg:   0 6px 28px rgba(31, 58, 95, 0.14);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.55;
+    font-size: 15px;
+  }
+  a { color: var(--teal-text); text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { color: var(--navy); }
+  a:focus-visible { outline: 2px solid var(--teal-text); outline-offset: 2px; border-radius: 2px; }
+  h1, h2, h3, h4 { color: var(--navy); margin-top: 0; }
+  h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+  h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .muted { color: var(--grey); }
+  .pill {
+    display: inline-block; padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .pill.teal  { background: var(--teal-tint);  color: var(--teal-text); }
+  .pill.coral { background: var(--coral-tint); color: #8B3A1F; }     /* 5.2:1 on coral-tint */
+  .pill.gold  { background: var(--gold-tint);  color: var(--gold-text); }
+  .pill.navy  { background: #E3E8F0;           color: var(--navy); }
+
+  /* ---------- ACCESS GATE ---------- */
+  #gate {
+    position: fixed; inset: 0; z-index: 999;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+  }
+  #gate .gate-card {
+    background: var(--white); width: min(460px, 92vw);
+    padding: 40px 36px; border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+  }
+  #gate h1 { font-size: 22px; margin-bottom: 4px; }
+  #gate .gate-sub { color: var(--grey); margin-bottom: 24px; font-size: 14px; }
+  #gate label { display: block; font-size: 12px; font-weight: 700;
+    color: var(--navy); text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 8px; }
+  #gate input {
+    width: 100%; padding: 12px 14px; font-size: 15px;
+    border: 1.5px solid var(--light); border-radius: 6px;
+    font-family: inherit; outline: none; transition: border-color 0.15s;
+  }
+  #gate input:focus { border-color: var(--teal); }
+  #gate button {
+    width: 100%; margin-top: 16px; padding: 12px;
+    background: var(--navy); color: white; border: none; border-radius: 6px;
+    font-weight: 700; font-size: 15px; cursor: pointer; transition: background 0.15s;
+  }
+  #gate button:hover { background: var(--navy-dark); }
+  #gate .gate-error { color: var(--coral); font-size: 13px; margin-top: 10px; min-height: 1.2em; }
+  #gate .gate-hint { font-size: 12px; color: var(--grey); margin-top: 18px;
+    padding-top: 16px; border-top: 1px solid var(--light); }
+
+  /* ---------- HEADER ---------- */
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+    color: white; padding: 28px 32px 24px;
+  }
+  header .kicker {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: #9EC3D1; margin-bottom: 6px;
+  }
+  header h1 { color: white; margin-bottom: 4px; font-size: 28px; }
+  header .sub { font-size: 14px; color: #C5D6E2; max-width: 820px; }
+  header .meta { margin-top: 16px; font-size: 12px; color: #B8C8D4; }
+  header .meta strong { color: white; font-weight: 600; }
+
+  /* ---------- NAV ---------- */
+  nav.tabs {
+    background: white; border-bottom: 1px solid var(--light);
+    display: flex; overflow-x: auto; padding: 0 24px;
+    position: sticky; top: 0; z-index: 20;
+    box-shadow: 0 1px 0 var(--light);
+  }
+  nav.tabs button {
+    background: none; border: none; padding: 14px 16px;
+    font-family: inherit; font-size: 14px; font-weight: 600;
+    color: var(--grey); cursor: pointer; position: relative;
+    white-space: nowrap; transition: color 0.15s;
+  }
+  nav.tabs button:hover { color: var(--navy); }
+  nav.tabs button.active { color: var(--navy); }
+  nav.tabs button:focus-visible {
+    outline: 2px solid var(--teal-text); outline-offset: -2px; border-radius: 4px;
+  }
+  nav.tabs button.active::after {
+    content: ""; position: absolute; left: 14px; right: 14px; bottom: 0;
+    height: 3px; background: var(--coral); border-radius: 3px 3px 0 0;
+  }
+  nav.tabs .lock-ind { font-size: 10px; color: var(--grey-dark); margin-left: 4px; }
+
+  /* ---------- MAIN ---------- */
+  main { padding: 28px 32px 60px; max-width: 1400px; margin: 0 auto; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.2s; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- CARDS ---------- */
+  .card {
+    background: white; border-radius: 8px; padding: 24px;
+    box-shadow: var(--shadow); margin-bottom: 20px;
+    border: 1px solid var(--light);
+  }
+  .card h2:first-child, .card h3:first-child { margin-top: 0; }
+  .card-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px; margin-bottom: 20px;
+  }
+  .stat-card {
+    background: white; padding: 18px 20px; border-radius: 8px;
+    border-left: 4px solid var(--teal); box-shadow: var(--shadow);
+  }
+  .stat-card.coral { border-left-color: var(--coral); }
+  .stat-card.gold  { border-left-color: var(--gold); }
+  .stat-card.navy  { border-left-color: var(--navy); }
+  .stat-card .label { font-size: 11px; font-weight: 700;
+    color: var(--grey); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-card .value { font-size: 26px; font-weight: 700;
+    color: var(--navy); margin: 4px 0; }
+  .stat-card .note  { font-size: 12px; color: var(--grey); }
+
+  .banner {
+    background: #FFFBEB; border: 1px solid #FCD34D; border-left: 4px solid #D97706;
+    border-radius: 6px; padding: 16px 20px; margin-bottom: 20px;
+    color: #4b3a1a;
+  }
+  .banner strong { color: #92400E; }
+
+  /* ---------- INITIATIVE CARD ---------- */
+  .init-card {
+    background: white; border: 1px solid var(--light); border-radius: 8px;
+    padding: 18px 20px; margin-bottom: 12px;
+    display: grid; grid-template-columns: 44px 1fr; gap: 16px;
+    transition: border-color 0.15s;
+  }
+  .init-card:hover { border-color: var(--teal); }
+  .init-card .id-badge {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: var(--navy); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px;
+  }
+  .init-card .id-badge.order { background: var(--teal); }
+  .init-card .id-badge.data  { background: var(--coral); }
+  .init-card .init-title { font-weight: 700; color: var(--navy); margin-bottom: 2px; font-size: 15px; }
+  .init-card .init-cat   { font-size: 11px; color: var(--grey); text-transform: uppercase;
+    letter-spacing: 0.05em; font-weight: 700; margin-bottom: 8px; }
+  .init-card .init-anchor { font-size: 13px; color: var(--ink); margin-bottom: 4px;
+    padding: 10px 12px; background: var(--cream); border-radius: 5px;
+    border-left: 3px solid var(--gold); }
+  .init-card .init-target { font-size: 12px; color: var(--grey); margin-top: 6px; font-style: italic; }
+  .init-card .init-current { font-size: 11px; color: var(--grey); margin-top: 6px; }
+  .init-card .init-current span { display: inline-block; margin-right: 12px; }
+  .init-card .init-current b { color: var(--navy); }
+
+  /* ---------- DOMAIN HEADER ---------- */
+  .domain-header {
+    display: flex; align-items: baseline; gap: 12px;
+    margin: 28px 0 14px; padding-bottom: 6px;
+    border-bottom: 2px solid var(--light);
+  }
+  .domain-header h3 { margin: 0; font-size: 17px; }
+  .domain-header .cnt { color: var(--grey); font-size: 13px; }
+
+  /* ---------- RESULTS ---------- */
+  .scatter-wrap {
+    background: white; border: 1px solid var(--light); border-radius: 8px;
+    padding: 12px; box-shadow: var(--shadow);
+  }
+  .disagree-table {
+    width: 100%; border-collapse: collapse; margin-top: 16px;
+    font-size: 13px;
+  }
+  .disagree-table th {
+    background: var(--navy); color: white; text-align: left;
+    padding: 10px 12px; font-weight: 600; font-size: 12px;
+    letter-spacing: 0.03em; text-transform: uppercase;
+  }
+  .disagree-table td { padding: 10px 12px; border-bottom: 1px solid var(--light); }
+  .disagree-table tr:hover { background: var(--cream); }
+  .disagree-table .flag.high { color: var(--coral); font-weight: 700; }
+  .disagree-table .flag.med  { color: var(--gold); font-weight: 700; }
+  .disagree-table .flag.low  { color: var(--teal); font-weight: 700; }
+
+  /* ---------- DASHBOARD IFRAME ---------- */
+  .dash-frame {
+    width: 100%; height: 1400px; border: 1px solid var(--light); border-radius: 8px;
+    background: white; box-shadow: var(--shadow);
+  }
+
+  /* ---------- VOTE CARD (native rating UI) ---------- */
+  .vote-card {
+    background: white; border: 1px solid var(--light); border-radius: 8px;
+    padding: 18px 20px; margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+  .vote-card.complete { border-left: 4px solid var(--teal); }
+  .vote-card .vc-header {
+    display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: start;
+    margin-bottom: 12px;
+  }
+  .vote-card .id-badge {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px; color: white;
+  }
+  .vote-card .id-badge.order { background: var(--teal); }
+  .vote-card .id-badge.data  { background: var(--coral); }
+  .vote-card .vc-title  { font-weight: 700; color: var(--navy); font-size: 15px; margin-bottom: 2px; }
+  .vote-card .vc-cat    { font-size: 11px; color: var(--grey); text-transform: uppercase;
+    letter-spacing: 0.05em; font-weight: 700; margin-bottom: 6px; }
+  .vote-card .vc-anchor {
+    font-size: 13px; color: var(--ink); margin-bottom: 10px;
+    padding: 8px 12px; background: var(--cream); border-radius: 5px;
+    border-left: 3px solid var(--gold);
+  }
+  .vote-card .vc-pre {
+    font-size: 11px; color: var(--grey); margin-bottom: 14px;
+  }
+  .vote-card .vc-pre b { color: var(--navy); }
+
+  .dim-block { margin-bottom: 14px; }
+  .dim-block .dim-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .dim-block .dim-name {
+    font-weight: 700; font-size: 13px; color: var(--navy);
+  }
+  .dim-block .dim-name .d-dot {
+    width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle;
+  }
+  .dim-block .dim-help {
+    font-size: 11px; color: var(--grey); font-weight: normal;
+  }
+  .pill-row {
+    display: flex; gap: 6px;
+  }
+  .pill-btn {
+    flex: 1; min-width: 36px; padding: 8px 0;
+    background: var(--white); border: 1.5px solid var(--light); border-radius: 6px;
+    font-family: inherit; font-size: 14px; font-weight: 700; color: var(--navy);
+    cursor: pointer; transition: all 0.12s;
+  }
+  .pill-btn:hover { border-color: var(--teal); background: var(--teal-tint); }
+  .pill-btn.active {
+    background: var(--navy); color: white; border-color: var(--navy);
+    transform: scale(1.03);
+  }
+  .pill-btn.active.effort { background: var(--coral); border-color: var(--coral); }
+  .pill-btn.active.impact { background: var(--teal); border-color: var(--teal); }
+  .pill-btn.active.interest { background: var(--gold); color: var(--gold-text); border-color: var(--gold); }
+  .pill-btn:focus-visible { outline: 2px solid var(--teal-text); outline-offset: 2px; }
+  .pill-scale {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--grey); margin-top: 4px;
+  }
+
+  .vc-comment {
+    width: 100%; margin-top: 6px; padding: 8px 10px;
+    border: 1.5px solid var(--light); border-radius: 5px;
+    font-family: inherit; font-size: 13px; resize: vertical; min-height: 60px;
+  }
+  .vc-comment:focus { border-color: var(--teal); outline: none; }
+
+  /* ---------- PROGRESS BAR ---------- */
+  .progress-row {
+    display: flex; align-items: center; gap: 16px; margin-top: 10px;
+  }
+  .progress-label { font-size: 13px; color: var(--grey); }
+  .progress-label strong { color: var(--navy); }
+  .progress-bar {
+    flex: 1; height: 8px; background: var(--light); border-radius: 4px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--teal), var(--navy));
+    width: 0%; transition: width 0.25s;
+  }
+
+  /* ---------- SUBMIT BUTTONS & CODE OUTPUT ---------- */
+  .submit-btn {
+    padding: 10px 20px; background: var(--navy); color: white;
+    border: none; border-radius: 5px; font-family: inherit;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: background 0.15s; margin-right: 8px;
+  }
+  .submit-btn:hover { background: var(--navy-dark); }
+  .submit-btn.secondary { background: var(--teal-text); }
+  .submit-btn.secondary:hover { background: var(--teal); }
+  .submit-btn:disabled { background: var(--grey); cursor: not-allowed; }
+
+  .code-output {
+    width: 100%; min-height: 140px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px; padding: 12px; border: 1.5px solid var(--light);
+    border-radius: 5px; background: var(--cream); color: var(--ink);
+    resize: vertical; word-break: break-all; white-space: pre-wrap;
+  }
+  .code-actions {
+    margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .code-paste {
+    width: 100%; min-height: 180px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px; padding: 12px; border: 1.5px solid var(--light);
+    border-radius: 5px; background: var(--white);
+    resize: vertical;
+  }
+  .code-paste:focus { border-color: var(--teal); outline: none; }
+
+  /* ---------- ADMIN ---------- */
+  .admin-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--cream); border-radius: 6px;
+    margin-bottom: 10px;
+  }
+  .admin-row .label { font-weight: 600; }
+  .toggle-btn {
+    padding: 8px 18px; border-radius: 5px; border: none;
+    font-family: inherit; font-weight: 700; font-size: 13px;
+    cursor: pointer; letter-spacing: 0.02em;
+  }
+  .toggle-btn.locked { background: var(--coral); color: white; }
+  .toggle-btn.unlocked { background: var(--teal); color: white; }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    border-top: 1px solid var(--light); padding: 24px 32px;
+    font-size: 12px; color: var(--grey); text-align: center;
+  }
+
+  /* ---------- UTIL ---------- */
+  .row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 0; min-width: 240px; }
+  .small { font-size: 12px; }
+  .placeholder {
+    background: var(--cream); border: 2px dashed var(--light); border-radius: 8px;
+    padding: 40px 24px; text-align: center; color: var(--grey);
+  }
+  .placeholder strong { color: var(--navy); }
+
+  /* ---------- METHODS BOX ---------- */
+  .methods-box {
+    background: var(--teal-tint); border-left: 4px solid var(--teal);
+    border-radius: 6px; padding: 18px 22px; margin: 16px 0;
+  }
+  .methods-box h3 { margin-top: 0; color: var(--teal); }
+  .methods-box ol, .methods-box ul { margin: 8px 0; padding-left: 22px; }
+  .methods-box li { margin-bottom: 6px; }
+
+  /* ---------- DIMENSION LEGEND ---------- */
+  .dim-legend {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    margin: 14px 0 20px;
+  }
+  .dim-cell {
+    background: white; border: 1px solid var(--light); border-radius: 6px;
+    padding: 12px 14px;
+  }
+  .dim-cell .d-label {
+    font-weight: 700; font-size: 13px; color: var(--navy);
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+  }
+  .dim-cell .d-dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  }
+  .dim-cell .d-desc { font-size: 12px; color: var(--grey); }
+</style>
+</head>
+<body>
+
+<!-- ========== ACCESS GATE ========== -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="kicker" style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--coral);margin-bottom:8px;">Mount Sinai · Emergency Medicine</div>
+    <h1>Chest Pain Order Set Prioritization</h1>
+    <p class="gate-sub">Front-End Care Standardization Task Force &middot; Multidimensional Delphi voting platform</p>
+    <form id="gate-form" onsubmit="return submitGate(event)">
+      <label for="gate-code">Access code</label>
+      <input id="gate-code" type="password" autocomplete="off" placeholder="Enter task force code" autofocus>
+      <button type="submit">Enter platform</button>
+      <div class="gate-error" id="gate-error" role="alert" aria-live="polite"></div>
+    </form>
+    <div class="gate-hint">
+      Access is limited to Front-End Care Standardization Task Force members. If you don't have a code, contact Tehreem or your workgroup lead (Ilana or Adam).
+    </div>
+  </div>
+</div>
+
+<!-- ========== HEADER ========== -->
+<header>
+  <div class="kicker">Mount Sinai · Department of Emergency Medicine</div>
+  <h1>Chest Pain Order Set Prioritization</h1>
+  <div class="sub">Front-End Care Standardization Task Force &middot; Multidimensional Delphi on 24 candidate initiatives (13 order-set design elements and 11 data-analysis work packages).</div>
+  <div class="meta">
+    <strong>Method:</strong> Two-round modified Delphi with Effort × Impact × Interest rating per initiative &nbsp;&middot;&nbsp;
+    <strong>Panel:</strong> Full task force (~15 members) &nbsp;&middot;&nbsp;
+    <strong>Output:</strong> Panel-scored Value Matrix for EBP Committee submission
+  </div>
+</header>
+
+<!-- ========== NAV ========== -->
+<nav class="tabs" role="tablist" aria-label="Delphi platform sections">
+  <button class="active" role="tab" aria-selected="true"  aria-controls="overview"  data-tab="overview">Overview</button>
+  <button              role="tab" aria-selected="false" aria-controls="dashboard" data-tab="dashboard">Data Dashboard</button>
+  <button              role="tab" aria-selected="false" aria-controls="context"   data-tab="context">Context &amp; Method</button>
+  <button              role="tab" aria-selected="false" aria-controls="round1"    data-tab="round1">R1 Rating</button>
+  <button              role="tab" aria-selected="false" aria-controls="r1results" data-tab="r1results">R1 Results<span class="lock-ind" id="lock-r1" aria-label="Locked until Round 1 closes" title="Opens after Round 1 closes">&#128274;</span></button>
+  <button              role="tab" aria-selected="false" aria-controls="round2"    data-tab="round2">R2 Rating<span class="lock-ind" id="lock-r2req" aria-label="Locked until Round 1 discussion complete" title="Opens after task force discusses R1 results">&#128274;</span></button>
+  <button              role="tab" aria-selected="false" aria-controls="r2results" data-tab="r2results">R2 Results<span class="lock-ind" id="lock-r2" aria-label="Locked until Round 2 closes" title="Opens after Round 2 closes">&#128274;</span></button>
+  <button              role="tab" aria-selected="false" aria-controls="admin"     data-tab="admin">Admin</button>
+</nav>
+
+<main>
+
+<!-- ========== OVERVIEW ========== -->
+<section id="overview" class="tab-content active" role="tabpanel">
+
+  <div class="card-grid">
+    <div class="stat-card">
+      <div class="label">Candidate initiatives</div>
+      <div class="value">24</div>
+      <div class="note">13 order-set design + 11 data-analysis</div>
+    </div>
+    <div class="stat-card coral">
+      <div class="label">Rating dimensions</div>
+      <div class="value">3 + 1</div>
+      <div class="note">Effort &middot; Impact &middot; Interest (1-5) plus comment</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="label">Rounds</div>
+      <div class="value">2</div>
+      <div class="note">With deliberation meeting between rounds</div>
+    </div>
+    <div class="stat-card navy">
+      <div class="label">Panel size target</div>
+      <div class="value">~15</div>
+      <div class="note">Full Front-End Care Standardization Task Force</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>What you're voting on</h2>
+    <p>This platform asks every task force member to rate <strong>all 24 candidate chest-pain initiatives</strong> on three axes, producing a panel-scored Value Matrix we can take to the EBP Committee and System Medical Directors.</p>
+    <div class="dim-legend">
+      <div class="dim-cell">
+        <div class="d-label"><span class="d-dot" style="background:var(--coral);"></span> Effort (1-5)</div>
+        <div class="d-desc">How much informatics build + task-force + analytics work will this take? 1 = trivial, 5 = multi-month build.</div>
+      </div>
+      <div class="dim-cell">
+        <div class="d-label"><span class="d-dot" style="background:var(--teal);"></span> Impact (1-5)</div>
+        <div class="d-desc">Expected impact on patients, clinicians, ACEP71/quality measures, and ED operations. 1 = marginal, 5 = transformative.</div>
+      </div>
+      <div class="dim-cell">
+        <div class="d-label"><span class="d-dot" style="background:var(--gold);"></span> Interest (1-5)</div>
+        <div class="d-desc">How personally engaged you are to work on or champion this. 1 = not me, 5 = I'd lead it.</div>
+      </div>
+    </div>
+    <p class="small muted">Per initiative you can also leave an optional free-text comment. Comments drive Meeting 2 deliberation &mdash; they are the most valuable data we collect.</p>
+  </div>
+
+  <div class="card">
+    <h2>Why multidimensional instead of classical Delphi?</h2>
+    <p>A single priority vote hides <em>where</em> panelists disagree. Two members can both rate an initiative "high priority" while one sees it as a Quick Win (low effort) and the other as a Strategic Bet (high effort). That matters for sequencing.</p>
+    <p>This platform rates every initiative on three axes. Between rounds you'll see the group's mean position on the Effort × Impact plane with Interest as bubble size &mdash; a live version of the Value Matrix. Items with <strong>wide spread</strong> on any axis are flagged for deliberation at Meeting 2. Round 2 is your chance to revise after seeing the group view.</p>
+    <p>The output isn't a consensus statement &mdash; it's a populated, panel-scored Value Matrix ready for the EBP Committee submission.</p>
+  </div>
+
+  <div class="card">
+    <h2>Timeline</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <tr><td style="padding:8px 12px;border-bottom:1px solid var(--light);width:180px;"><strong>Round 1 open</strong></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--light);">Now through <em>[Meeting 2 eve &mdash; edit in config]</em></td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid var(--light);"><strong>Meeting 2</strong></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--light);">Review R1 results, discuss high-spread items, orient to Round 2</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid var(--light);"><strong>Round 2 open</strong></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--light);">Post-Meeting 2 through <em>[R2 close &mdash; edit in config]</em></td></tr>
+      <tr><td style="padding:8px 12px;"><strong>Output</strong></td>
+          <td style="padding:8px 12px;">Locked Value Matrix &rarr; EBP Committee &rarr; System Medical Directors</td></tr>
+    </table>
+  </div>
+
+</section>
+
+<!-- ========== ROUND 1 ========== -->
+<section id="round1" class="tab-content" role="tabpanel" aria-labelledby="tab-round1">
+
+  <div class="banner">
+    <strong>Round 1 is open.</strong> Rate all 24 initiatives on Effort, Impact, and Interest (1-5 each), plus an optional comment per initiative. Budget ~15 minutes. Your ratings save to your browser as you click &mdash; no form to submit mid-way. When done, click <strong>Submit my ratings</strong> at the bottom.
+  </div>
+
+  <div class="card" style="background: var(--teal-tint); border-left: 4px solid var(--teal-text);">
+    <h3 style="margin-bottom:4px;">Before you vote &mdash; review the data</h3>
+    <p class="small" style="margin:0;">Your Effort and Impact ratings are stronger if grounded in the baseline. <a href="#" onclick="switchTab('dashboard');return false;">Open the Data Dashboard</a> or <a href="#" onclick="switchTab('context');return false;">read the Method &amp; Context</a> first.</p>
+  </div>
+
+  <div class="card" id="r1-identity-card">
+    <h2>Who are you?</h2>
+    <p class="small muted">We need your name to dedupe submissions and so Tehreem knows who voted. Not shared with the group &mdash; only used for admin aggregation.</p>
+    <label class="small" for="r1-name" style="display:block;margin-top:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;">Your name</label>
+    <input id="r1-name" type="text" placeholder="e.g., Ilana Klein"
+      style="width:min(400px,100%);padding:10px 12px;border:1.5px solid var(--light);border-radius:5px;font-family:inherit;font-size:14px;margin-top:6px;"
+      oninput="saveIdentity(1);updateProgress(1);">
+  </div>
+
+  <div class="card" id="r1-progress-card">
+    <h2>Your Round 1 ballot</h2>
+    <div class="progress-row">
+      <div class="progress-label">Initiatives rated: <strong id="r1-progress">0 / 24</strong></div>
+      <div class="progress-bar"><div class="progress-fill" id="r1-progress-bar"></div></div>
+    </div>
+    <p class="small muted" style="margin-top:10px;">Click a pill (1-5) for Effort, Impact, and Interest on each initiative below. Comment is optional but highly valued. Everything autosaves to your browser.</p>
+  </div>
+
+  <div id="r1-cards"></div>
+
+  <div class="card" id="r1-submit-card">
+    <h2>Submit my Round 1 ratings</h2>
+    <p class="small muted">When you've rated all 24 (or at least the ones you feel qualified to), click below to generate your submission code. Either email it to Tehreem (one click) or copy-paste it into your own message. You can revise and regenerate any time before Round 1 closes.</p>
+
+    <div id="r1-submit-warning" class="small" style="color:var(--gold-text);margin-bottom:10px;"></div>
+
+    <button id="r1-submit-btn" class="submit-btn" onclick="generateSubmissionCode(1)">Generate submission code</button>
+
+    <div id="r1-code-output" style="display:none;margin-top:18px;">
+      <label class="small" style="display:block;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Your submission code</label>
+      <textarea id="r1-code-text" class="code-output" readonly onclick="this.select()"></textarea>
+      <div class="code-actions">
+        <button class="submit-btn secondary" onclick="copyCode(1)">Copy to clipboard</button>
+        <button class="submit-btn" onclick="emailCode(1)">Email to Tehreem</button>
+      </div>
+      <p class="small muted" style="margin-top:10px;">
+        <strong>What happens next:</strong> clicking <em>Email to Tehreem</em> opens your mail app with the code pre-filled. Just press Send.
+        Prefer to paste into an existing email thread? Use <em>Copy to clipboard</em> instead.
+      </p>
+    </div>
+  </div>
+
+</section>
+
+<!-- ========== R1 RESULTS ========== -->
+<section id="r1results" class="tab-content" role="tabpanel">
+
+  <div id="r1-locked" class="placeholder">
+    <strong>Round 1 results are not yet released.</strong><br>
+    Results will be unlocked at Meeting 2 by the admin. Check back after the deliberation meeting.
+  </div>
+
+  <div id="r1-unlocked" style="display:none;">
+
+    <div class="card">
+      <h2>Round 1 panel view</h2>
+      <p class="small muted">Each bubble is one initiative. <strong>X-axis:</strong> group mean Effort. <strong>Y-axis:</strong> group mean Impact. <strong>Bubble size:</strong> group mean Interest. <strong>Bubble color:</strong> disagreement (SD across panelists) &mdash; red means panel is split.</p>
+      <div class="scatter-wrap">
+        <div id="r1-scatter" style="height: 620px;"></div>
+      </div>
+      <div id="r1-stats" class="small muted" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>High-spread items (for Meeting 2 deliberation)</h2>
+      <p class="small muted">Items ranked by composite SD across all three dimensions. Top of the list = where the panel most disagrees &mdash; spend Meeting 2 time here.</p>
+      <table class="disagree-table" id="r1-disagree"></table>
+    </div>
+
+  </div>
+
+</section>
+
+<!-- ========== ROUND 2 ========== -->
+<section id="round2" class="tab-content" role="tabpanel">
+
+  <div id="r2-locked" class="placeholder">
+    <strong>Round 2 has not opened yet.</strong><br>
+    Round 2 will open after Meeting 2. You'll see the Round 1 group view before revising your ratings.
+  </div>
+
+  <div id="r2-unlocked" style="display:none;">
+
+    <div class="banner">
+      <strong>Round 2 is open.</strong> You've seen the group's R1 placement and discussed high-spread items at Meeting 2. Revise your ratings &mdash; especially where you now see the issue differently. Your R1 ratings are pre-filled below; edit only what you'd like to change.
+    </div>
+
+    <div class="card" id="r2-identity-card">
+      <h2>Confirm your name</h2>
+      <label class="small" for="r2-name" style="display:block;margin-top:6px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;">Your name</label>
+      <input id="r2-name" type="text" placeholder="e.g., Ilana Klein"
+        style="width:min(400px,100%);padding:10px 12px;border:1.5px solid var(--light);border-radius:5px;font-family:inherit;font-size:14px;margin-top:6px;"
+        oninput="saveIdentity(2);updateProgress(2);">
+    </div>
+
+    <div class="card">
+      <h2>Your Round 2 ballot</h2>
+      <div class="progress-row">
+        <div class="progress-label">Initiatives rated: <strong id="r2-progress">0 / 24</strong></div>
+        <div class="progress-bar"><div class="progress-fill" id="r2-progress-bar"></div></div>
+      </div>
+      <p class="small muted" style="margin-top:10px;">Same 24 initiatives, same three-axis scoring. Your R1 ratings are pre-loaded &mdash; revise where deliberation changed your view.</p>
+    </div>
+
+    <div id="r2-cards"></div>
+
+    <div class="card">
+      <h2>Submit my Round 2 ratings</h2>
+      <p class="small muted">When done, generate your submission code and send to Tehreem.</p>
+
+      <div id="r2-submit-warning" class="small" style="color:var(--gold-text);margin-bottom:10px;"></div>
+
+      <button class="submit-btn" onclick="generateSubmissionCode(2)">Generate submission code</button>
+
+      <div id="r2-code-output" style="display:none;margin-top:18px;">
+        <label class="small" style="display:block;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Your submission code</label>
+        <textarea id="r2-code-text" class="code-output" readonly onclick="this.select()"></textarea>
+        <div class="code-actions">
+          <button class="submit-btn secondary" onclick="copyCode(2)">Copy to clipboard</button>
+          <button class="submit-btn" onclick="emailCode(2)">Email to Tehreem</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+<!-- ========== R2 RESULTS ========== -->
+<section id="r2results" class="tab-content" role="tabpanel">
+
+  <div id="r2r-locked" class="placeholder">
+    <strong>Round 2 results are not yet released.</strong><br>
+    Final results will be unlocked once the admin closes Round 2.
+  </div>
+
+  <div id="r2r-unlocked" style="display:none;">
+
+    <div class="card">
+      <h2>Round 2 final panel view</h2>
+      <p class="small muted">The Value Matrix, fully populated with panel scores. Use this directly in the EBP Committee submission.</p>
+      <div class="scatter-wrap">
+        <div id="r2-scatter" style="height: 620px;"></div>
+      </div>
+      <div id="r2-stats" class="small muted" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>R1 &rarr; R2 movement</h2>
+      <p class="small muted">Items whose group mean shifted most between rounds. Big shifts = deliberation changed minds. Small shifts = the group was stable.</p>
+      <table class="disagree-table" id="r12-delta"></table>
+    </div>
+
+    <div class="card">
+      <h2>Converged assignments (final Value Matrix)</h2>
+      <p class="small muted">Quadrant classification using the same thresholds as the pre-vote matrix (Effort cut = 2.5, Impact cut = 3.0). Items with SD &le; 0.75 on every axis are marked <em>converged</em>; others are flagged for co-lead adjudication.</p>
+      <table class="disagree-table" id="r2-quadrants"></table>
+    </div>
+
+  </div>
+
+</section>
+
+<!-- ========== DATA DASHBOARD ========== -->
+<section id="dashboard" class="tab-content" role="tabpanel">
+
+  <div class="card">
+    <h2>Chest pain ordering dashboard</h2>
+    <p class="small muted">The interactive dashboard built on the April 2026 baseline (1,514 orders ranked across first 3 ordering sessions per encounter, age &ge; 18, last 12 months, system-wide vs. Main ED). Use this while voting &mdash; especially for Round 1 of the data-analysis items (#14-24) where the current state <em>is</em> the argument.</p>
+    <iframe class="dash-frame" src="ED_ChestPain_Dashboard.html" title="ED Chest Pain Dashboard"></iframe>
+    <p class="small muted" style="margin-top:10px;">
+      <a href="ED_ChestPain_Dashboard.html" target="_blank">Open dashboard in a new tab</a> for more room.
+    </p>
+  </div>
+
+</section>
+
+<!-- ========== CONTEXT & METHOD ========== -->
+<section id="context" class="tab-content" role="tabpanel">
+
+  <div class="card">
+    <h2>Project charter (for context)</h2>
+    <p>Mount Sinai Hospital Department of Emergency Medicine <strong>Front-End Care Standardization Task Force</strong>. Building standardized, evidence-based order sets for high-volume ED chief complaints. Current focus: <strong>chest pain</strong>.</p>
+    <p><strong>Why:</strong> Align clinical practice with evidence-based medicine, reduce provider cognitive load, streamline CDS tools, optimize resource utilization across the health system.</p>
+    <p><strong>KPIs:</strong> Time to First Order (TTFO) &middot; ED Length of Stay &middot; Order Set Utilization Rate &middot; Resource Utilization (unnecessary testing).</p>
+    <p><strong>Approval path:</strong> EBP Committee &rarr; System Medical Directors Meeting &rarr; System Nursing Directors Meeting &rarr; Epic licensing.</p>
+  </div>
+
+  <div class="card">
+    <h2>ACEP71 (quality measure anchor)</h2>
+    <p><strong>ACEP71 &mdash; Coagulation Studies in Patients Presenting to the ED with No Coagulopathy or Bleeding.</strong> Process measure. Percentage of ED visits for patients &ge; 18 during which PT, PTT, or INR were ordered by an emergency care provider, with defined clinical exclusions (end-stage liver disease, coagulopathy, anticoagulant use, bleeding, atrial fibrillation, trauma, PE/DVT, etc.).</p>
+    <p><strong>Direction:</strong> Lower is better &mdash; an anti-overuse measure. The chest pain data shows ~4,500 coag orders + 1,200 D-Dimers at Rank 1 of ordering sessions alone &mdash; the largest single ACEP71 opportunity in the baseline.</p>
+  </div>
+
+  <div class="methods-box">
+    <h3>Multidimensional Delphi &mdash; method summary</h3>
+    <ol>
+      <li><strong>Round 1.</strong> Every panelist rates all 24 initiatives on Effort, Impact, and Interest (1-5). Optional comment per item.</li>
+      <li><strong>Between rounds.</strong> Group mean and SD are computed per dimension. A scatter plot shows the group's Value Matrix placement. Items with SD &gt; 0.75 on any axis are flagged for Meeting 2 deliberation.</li>
+      <li><strong>Meeting 2.</strong> Task force reviews R1 scatter, discusses flagged items, surfaces hidden constraints (e.g., upcoming Epic upgrade dependencies) that should reframe effort or impact.</li>
+      <li><strong>Round 2.</strong> Panelists see the group view, revise their ratings.</li>
+      <li><strong>Convergence criterion.</strong> An item is <em>converged</em> if SD &le; 0.75 on all three axes. Converged items lock to their final quadrant. Unconverged items go to co-lead adjudication at Meeting 3.</li>
+      <li><strong>Output.</strong> Populated Value Matrix with 95% CIs, ready for EBP Committee.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>Team &amp; governance</h2>
+    <ul style="margin:6px 0;padding-left:22px;">
+      <li><strong>Project Sponsors:</strong> Olivia, Kristen</li>
+      <li><strong>Medical Director Lead:</strong> Tehreem</li>
+      <li><strong>Triage Nursing Chief Complaints:</strong> Delaney</li>
+      <li><strong>Ideal State Order Sets Workgroup (Quality):</strong> Ilana (lead) &middot; Emma, Amina, Sam R, Sydney, Taylor M</li>
+      <li><strong>Current State Data Workgroup (Informatics):</strong> Adam (lead) &middot; Ragini, Emma</li>
+    </ul>
+  </div>
+
+</section>
+
+<!-- ========== ADMIN ========== -->
+<section id="admin" class="tab-content" role="tabpanel">
+
+  <div id="admin-locked" class="card">
+    <h2>Admin panel</h2>
+    <p>Enter admin password to unlock lock controls.</p>
+    <form onsubmit="return submitAdmin(event)" style="max-width:360px;">
+      <label class="small" style="display:block;margin-bottom:6px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;">Admin password</label>
+      <input id="admin-pw" type="password" style="width:100%;padding:10px;border:1.5px solid var(--light);border-radius:5px;font-family:inherit;font-size:14px;" autocomplete="off">
+      <button type="submit" style="margin-top:10px;padding:10px 18px;background:var(--navy);color:white;border:none;border-radius:5px;font-weight:700;cursor:pointer;">Unlock admin</button>
+      <div id="admin-err" class="small" style="color:var(--coral);margin-top:8px;"></div>
+    </form>
+  </div>
+
+  <div id="admin-unlocked" style="display:none;">
+
+    <div class="card">
+      <h2>Lock controls</h2>
+      <p class="small muted">Toggles are stored locally per-browser (localStorage). Use the same browser on the same laptop across meetings to avoid re-toggling.</p>
+
+      <div class="admin-row">
+        <div class="label">Round 1 results tab visibility</div>
+        <button class="toggle-btn" id="tog-r1" onclick="toggleLock('r1')"></button>
+      </div>
+      <div class="admin-row">
+        <div class="label">Round 2 rating tab visibility</div>
+        <button class="toggle-btn" id="tog-r2req" onclick="toggleLock('r2req')"></button>
+      </div>
+      <div class="admin-row">
+        <div class="label">Round 2 results tab visibility</div>
+        <button class="toggle-btn" id="tog-r2" onclick="toggleLock('r2')"></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Round 1 submissions</h2>
+      <p class="small muted">Paste each member's submission code on its own line (one code per line). Codes come from the <em>Email to Tehreem</em> or <em>Copy to clipboard</em> buttons on the R1 Rating tab. If a member submits twice, the platform keeps the most recent one (by timestamp).</p>
+
+      <textarea id="r1-paste" class="code-paste" placeholder="Paste one code per line, e.g.:&#10;CPD1.v1.eyJuIjoiSWxhbmEgS2xlaW4iLCJyIjoxLCJ0Ijox...&#10;CPD1.v1.eyJuIjoiQWRhbSIsInIiOjEsInQiOjE3NzY4Mj..."></textarea>
+
+      <div style="margin-top:10px;">
+        <button class="submit-btn" onclick="aggregateRound(1)">Aggregate R1 results</button>
+        <button class="submit-btn secondary" onclick="clearRound(1)">Clear R1 submissions</button>
+      </div>
+
+      <div id="r1-agg-status" class="small muted" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Round 2 submissions</h2>
+      <p class="small muted">Paste R2 submission codes here. Re-paste and re-aggregate any time members send updates.</p>
+
+      <textarea id="r2-paste" class="code-paste" placeholder="Paste R2 codes, one per line, e.g.:&#10;CPD2.v1.eyJuIjoi..."></textarea>
+
+      <div style="margin-top:10px;">
+        <button class="submit-btn" onclick="aggregateRound(2)">Aggregate R2 results</button>
+        <button class="submit-btn secondary" onclick="clearRound(2)">Clear R2 submissions</button>
+      </div>
+
+      <div id="r2-agg-status" class="small muted" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Backup / restore</h2>
+      <p class="small muted">Export all aggregated submissions as JSON (keep a copy in case you clear browser storage). Restore by pasting the JSON back here.</p>
+      <button class="submit-btn secondary" onclick="exportAll()">Export all submissions (.json)</button>
+      <details style="margin-top:10px;">
+        <summary class="small muted" style="cursor:pointer;">Restore from backup</summary>
+        <textarea id="restore-paste" class="code-paste" style="margin-top:8px;" placeholder='{"r1":[...],"r2":[...]}'></textarea>
+        <button class="submit-btn secondary" style="margin-top:8px;" onclick="restoreAll()">Restore</button>
+      </details>
+      <div id="restore-status" class="small muted" style="margin-top:10px;"></div>
+    </div>
+
+  </div>
+
+</section>
+
+</main>
+
+<footer>
+  Mount Sinai Hospital &middot; Department of Emergency Medicine &middot; Front-End Care Standardization Task Force<br>
+  Platform built on the multidimensional Delphi pattern. Last updated 2026-04-21.
+</footer>
+
+<!-- ========== CONFIGURATION ========== -->
+<script>
+//                     ================================================
+//                     === CONFIGURATION - EDIT THESE VALUES ONLY ====
+//                     ================================================
+
+const CONFIG = {
+  // Access gate
+  ACCESS_CODE:    "MSCHESTPAIN2026",
+  ADMIN_PASSWORD: "admin-chestpain-2026",
+
+  // Where submission codes get emailed (opens the member's default mail client pre-filled)
+  ADMIN_EMAIL:    "tehreemrehman@gmail.com",
+
+  // Convergence threshold — group SD at or below this is "converged" on that dimension
+  SD_CONVERGE: 0.75,
+
+  // Quadrant thresholds — matches the pre-vote Value Matrix
+  EFFORT_CUT: 2.5,
+  IMPACT_CUT: 3.0,
+};
+
+//                     ================================================
+//                     === INITIATIVE CATALOG (24 items) =============
+//                     ================================================
+
+const INITIATIVES = [
+  // ----- ORDER SET DESIGN (13) -----
+  { id: 1,  kind:"order", domain:"Catalog & Defaults",
+    title:"Collapse duplicate CBC synonyms",
+    cat:"Order Set — Catalog",
+    anchor:"Baseline catalog contains two CBC+Plt+Diff synonyms totaling 7,671 Rank 1 orders. Providers pick inconsistently; no clinical difference.",
+    target:"Single canonical CBC+Diff order in the chest pain set. Retire synonyms at set level.",
+    pre:{E:1.0, I:1.8, T:4.5}},
+
+  { id: 2,  kind:"order", domain:"Catalog & Defaults",
+    title:"Remove CMP from default (BMP-only in set)",
+    cat:"Order Set — Catalog",
+    anchor:"System Rank 1 CMP rate is elevated vs. Main ED (1.2%). BMP usually sufficient for undifferentiated chest pain without hepatic concern.",
+    target:"Replace CMP with BMP as default in chest pain set; CMP remains one click away.",
+    pre:{E:1.3, I:2.4, T:4.0}},
+
+  { id: 3,  kind:"order", domain:"CDS Prompts",
+    title:"Coagulation study rationalization (ACEP71)",
+    cat:"Order Set — CDS Prompt",
+    anchor:"~4,500 coag orders (PT/INR, APTT) at Rank 1 system-wide. Most chest pain patients meet zero ACEP71 exclusions — direct overuse.",
+    target:"Hard-stop CDS prompting for ACEP71 exclusion indication before PT/INR/APTT can be placed from the chest pain set.",
+    pre:{E:3.0, I:3.9, T:4.5}},
+
+  { id: 4,  kind:"order", domain:"CDS Prompts",
+    title:"D-Dimer gated by PERC / Wells",
+    cat:"Order Set — CDS Prompt",
+    anchor:"~1,200 D-Dimers at Rank 1 system-wide; Main ED holds at 1.7% (closer to evidence-based target).",
+    target:"D-Dimer order fires a PERC / Wells mini-calculator; bypass requires documented indication.",
+    pre:{E:2.7, I:3.5, T:4.0}},
+
+  { id: 5,  kind:"order", domain:"CDS Prompts",
+    title:"Selective CXR with respiratory-indication prompt",
+    cat:"Order Set — CDS Prompt",
+    anchor:"CXR is Rank 1 for most chest pain encounters despite limited yield in low-risk, non-respiratory presentations.",
+    target:"CXR prompt asks for SpO2 / respiratory symptom confirmation before firing; default stays but documentation required.",
+    pre:{E:2.3, I:3.0, T:3.5}},
+
+  { id: 6,  kind:"order", domain:"CDS Prompts",
+    title:"Pro-BNP gated on HF suspicion",
+    cat:"Order Set — CDS Prompt",
+    anchor:"Pro-BNP ordered broadly despite chest-pain evidence supporting selective use (known HF, dyspnea, edema).",
+    target:"Pro-BNP requires documented HF suspicion or equivalent indication in chest pain set.",
+    pre:{E:1.7, I:2.0, T:3.0}},
+
+  { id: 7,  kind:"order", domain:"CDS Prompts",
+    title:"Decouple respiratory viral panel from chest pain",
+    cat:"Order Set — Trigger",
+    anchor:"RVP is pre-selected in some chest pain views despite no evidence base for routine chest pain.",
+    target:"Remove RVP from chest pain set; retain in respiratory/URI set.",
+    pre:{E:1.3, I:2.4, T:3.5}},
+
+  { id: 8,  kind:"order", domain:"Automation",
+    title:"Auto-deferred repeat troponin at validated interval",
+    cat:"Order Set — Automation",
+    anchor:"Serial troponins are ordered manually, creating variation in re-check interval (2 / 3 / 6 h).",
+    target:"When initial troponin orders in set, system auto-queues the repeat at a protocol-validated interval with a single clinician confirmation.",
+    pre:{E:2.3, I:3.3, T:5.0}},
+
+  { id: 9,  kind:"order", domain:"Bundles",
+    title:"Acetaminophen PRN bundle in order set",
+    cat:"Order Set — Bundle",
+    anchor:"PRN analgesia ordered ad hoc, introducing delay between triage and first dose.",
+    target:"Chest pain set offers PRN acetaminophen as a one-click option with standard dosing.",
+    pre:{E:1.0, I:1.6, T:3.0}},
+
+  { id: 10, kind:"order", domain:"Defaults",
+    title:"Saline lock default / remove NaCl bolus as reflex",
+    cat:"Order Set — Default",
+    anchor:"Normal saline bolus is ordered reflexively even in stable, non-hypotensive chest pain patients.",
+    target:"Set defaults to saline lock; NaCl bolus requires explicit selection.",
+    pre:{E:1.3, I:1.6, T:3.0}},
+
+  { id: 11, kind:"order", domain:"Risk Stratification",
+    title:"HEART score integrated risk-stratification gateway",
+    cat:"Order Set — CDS / Risk Score",
+    anchor:"Risk stratification is currently unstructured. HEART is evidence-base and well-validated; integration would drive tier branching in the order set.",
+    target:"HEART score calculator embedded at entry of chest pain set, with score-driven branching to low/intermediate/high-risk sub-sets.",
+    pre:{E:3.3, I:4.0, T:5.0}},
+
+  { id: 12, kind:"order", domain:"Safety Defaults",
+    title:"Aspirin 325mg auto-fire for documented ACS concern",
+    cat:"Order Set — Safety Default",
+    anchor:"ASA is a Class I recommendation for suspected ACS; administration is currently variable.",
+    target:"When HEART score &ge; 4 or ACS concern documented, chest pain set pre-selects ASA 325mg (with contraindication check).",
+    pre:{E:1.7, I:2.3, T:4.5}},
+
+  { id: 13, kind:"order", domain:"CDS Prompts",
+    title:"NTG SL gated on BP and ACS suspicion",
+    cat:"Order Set — CDS Prompt",
+    anchor:"NTG ordered without systematic BP threshold check, particularly in presentations with possible RV involvement.",
+    target:"NTG SL order in chest pain set requires BP confirmation and ACS suspicion documentation before firing.",
+    pre:{E:1.7, I:1.8, T:3.5}},
+
+  // ----- DATA ANALYSIS (11) -----
+  { id: 14, kind:"data", domain:"ACEP71 Baseline",
+    title:"Encounter-level ACEP71 baseline with exclusions applied",
+    cat:"Data Analysis — Baseline",
+    anchor:"Current baseline counts coag orders but doesn't apply the ACEP71 exclusion list (liver disease, anticoagulants, A-fib, etc.).",
+    target:"Exclusion-adjusted ACEP71 numerator and denominator per ED visit, stratified by Main ED vs. system.",
+    pre:{E:2.0, I:2.6, T:4.0}},
+
+  { id: 15, kind:"data", domain:"Safety",
+    title:"EKG-without-troponin cohort clinical profile",
+    cat:"Data Analysis — Safety",
+    anchor:"~30% of chest-pain encounters get EKG but no troponin. This is clinically appropriate for low-risk patients — but we don't have the cohort profile to confirm.",
+    target:"Demographic and clinical characterization of EKG-only cohort; miss-rate check via 30-day MACE linkage.",
+    pre:{E:1.7, I:2.0, T:4.0}},
+
+  { id: 16, kind:"data", domain:"Risk Score",
+    title:"HEART pathway feasibility count",
+    cat:"Data Analysis — Risk Score",
+    anchor:"Unknown what proportion of chest pain encounters have the EHR data elements needed to auto-calculate HEART.",
+    target:"Document data-element availability rate for HEART (history, EKG, age, risk factors, troponin) per encounter.",
+    pre:{E:1.7, I:2.4, T:4.0}},
+
+  { id: 17, kind:"data", domain:"Protocol",
+    title:"Serial troponin interval analysis",
+    cat:"Data Analysis — Protocol",
+    anchor:"Current repeat troponin timing is unstructured. No baseline on provider variation in re-check interval.",
+    target:"Distribution of observed troponin intervals per provider; compare to protocol target (2h HS-Trop).",
+    pre:{E:1.3, I:2.1, T:3.0}},
+
+  { id: 18, kind:"data", domain:"Waste",
+    title:"Low-value ordering quantification (composite)",
+    cat:"Data Analysis — Waste",
+    anchor:"No current aggregate measure of low-value ordering across the 24 initiatives.",
+    target:"Composite 'low-value orders per chest pain encounter' metric, baseline and tracked through intervention.",
+    pre:{E:1.7, I:2.3, T:3.5}},
+
+  { id: 19, kind:"data", domain:"KPI Baseline",
+    title:"TTFO baseline by ESI, shift, provider cohort",
+    cat:"Data Analysis — KPI Baseline",
+    anchor:"Time to first order (TTFO) is a task force KPI but lacks baseline with proper risk adjustment.",
+    target:"Median TTFO (triage &rarr; first chest pain set order) by ESI level, shift, and provider experience quartile.",
+    pre:{E:1.3, I:2.4, T:3.5}},
+
+  { id: 20, kind:"data", domain:"KPI",
+    title:"ED LOS attribution by order pattern",
+    cat:"Data Analysis — KPI",
+    anchor:"ED LOS is a task force KPI but drivers within chest pain cohort aren't attributed.",
+    target:"Regression attributing LOS to order pattern (e.g., coag panel, full metabolic, advanced imaging).",
+    pre:{E:1.7, I:2.5, T:3.5}},
+
+  { id: 21, kind:"data", domain:"Change Management",
+    title:"Provider-level variation map",
+    cat:"Data Analysis — Change Management",
+    anchor:"Provider ordering variation is suspected but not quantified. Needed for targeted education vs. default changes.",
+    target:"Ordering-intensity distribution per provider, normalized for case mix; identify high/low outliers for peer-review.",
+    pre:{E:2.0, I:2.6, T:3.5}},
+
+  { id: 22, kind:"data", domain:"Equity",
+    title:"Site-level variation with case-mix adjustment",
+    cat:"Data Analysis — Equity",
+    anchor:"Main ED already practices closer to evidence-based target on CMP (1.2%), D-Dimer (1.7%). But site differences may confound with case mix.",
+    target:"Site-by-site ordering rates adjusted for age, sex, ESI, acuity; identify site(s) leading vs. lagging on standardization.",
+    pre:{E:2.3, I:2.3, T:3.5}},
+
+  { id: 23, kind:"data", domain:"Safety",
+    title:"30-day safety signal pre-registration",
+    cat:"Data Analysis — Safety",
+    anchor:"Prior to intervention launch, we should publicly pre-register the 30-day safety outcomes we'll monitor (MACE, readmission, mortality).",
+    target:"Pre-registered safety monitoring plan with thresholds for investigation, uploaded to task-force wiki before Round 1 of any intervention.",
+    pre:{E:2.0, I:1.6, T:4.5}},
+
+  { id: 24, kind:"data", domain:"Evaluation",
+    title:"Pre/post measurement design (ITS / SPC)",
+    cat:"Data Analysis — Evaluation",
+    anchor:"Intervention evaluation method has not been chosen. ITS or SPC controls for secular trend and random variation.",
+    target:"Formal ITS or SPC evaluation plan selected and powered before Round 1 launch; pre-specified primary and secondary endpoints.",
+    pre:{E:2.0, I:2.8, T:4.0}},
+];
+</script>
+
+<!-- ========== RUNTIME ========== -->
+<script>
+// ----------  ACCESS GATE ----------
+function submitGate(e) {
+  e.preventDefault();
+  const code = document.getElementById("gate-code").value.trim();
+  if (code === CONFIG.ACCESS_CODE) {
+    sessionStorage.setItem("cp-delphi-access", "ok");
+    document.getElementById("gate").style.display = "none";
+    return false;
+  }
+  document.getElementById("gate-error").textContent = "Incorrect code. Try again or contact a task force lead.";
+  return false;
+}
+function checkGate() {
+  if (sessionStorage.getItem("cp-delphi-access") === "ok") {
+    document.getElementById("gate").style.display = "none";
+  }
+}
+
+// ----------  TAB SWITCHER ----------
+function switchTab(name) {
+  document.querySelectorAll("nav.tabs button").forEach(b => {
+    const isActive = b.dataset.tab === name;
+    b.classList.toggle("active", isActive);
+    b.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  document.querySelectorAll(".tab-content").forEach(s => s.classList.toggle("active", s.id === name));
+  // refresh results if hitting them
+  if (name === "r1results") maybeRenderResults(1);
+  if (name === "r2results") maybeRenderResults(2);
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+document.querySelectorAll("nav.tabs button").forEach(btn => {
+  btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
+
+// ----------  VOTE CARDS + IDENTITY + PROGRESS ----------
+function ratingKey(round)      { return `cp-delphi-r${round}-ratings`; }
+function commentKey(round)     { return `cp-delphi-r${round}-comments`; }
+function identityKey(round)    { return `cp-delphi-r${round}-name`; }
+function submissionsKey(round) { return `cp-delphi-r${round}-submissions`; }
+
+function loadRatings(round) {
+  try { return JSON.parse(localStorage.getItem(ratingKey(round)) || "{}"); }
+  catch (e) { return {}; }
+}
+function saveRatings(round, obj) {
+  localStorage.setItem(ratingKey(round), JSON.stringify(obj));
+}
+function loadComments(round) {
+  try { return JSON.parse(localStorage.getItem(commentKey(round)) || "{}"); }
+  catch (e) { return {}; }
+}
+function saveComments(round, obj) {
+  localStorage.setItem(commentKey(round), JSON.stringify(obj));
+}
+function loadIdentity(round) {
+  const v = localStorage.getItem(identityKey(round)) || "";
+  const el = document.getElementById(`r${round}-name`);
+  if (el) el.value = v;
+  return v;
+}
+function saveIdentity(round) {
+  const el = document.getElementById(`r${round}-name`);
+  if (!el) return;
+  localStorage.setItem(identityKey(round), el.value.trim());
+}
+
+function saveRating(round, id, dim, val) {
+  const r = loadRatings(round);
+  r[id] = r[id] || {};
+  r[id][dim] = val;
+  saveRatings(round, r);
+  // repaint pill states for this card
+  const card = document.querySelector(`.vote-card[data-id="${id}"][data-round="${round}"]`);
+  if (card) {
+    card.querySelectorAll(`.pill-btn[data-dim="${dim}"]`).forEach(b => {
+      b.classList.toggle("active", Number(b.dataset.val) === val);
+    });
+  }
+  updateProgress(round);
+}
+function saveComment(round, id, text) {
+  const c = loadComments(round);
+  if (text && text.trim()) c[id] = text; else delete c[id];
+  saveComments(round, c);
+}
+
+function renderVoteCards(round) {
+  const container = document.getElementById(`r${round}-cards`);
+  if (!container) return;
+  const ratings  = loadRatings(round);
+  const comments = loadComments(round);
+  // R2: pre-fill from R1 when R2 rating not set yet
+  const r1Ratings = round === 2 ? loadRatings(1) : {};
+  const groups = [
+    { label: "Order Set Design", kind: "order" },
+    { label: "Data Analysis",    kind: "data"  },
+  ];
+  let html = "";
+  for (const g of groups) {
+    const items = INITIATIVES.filter(i => i.kind === g.kind);
+    html += `<div class="domain-header"><h3>${g.label}</h3><span class="cnt">${items.length} initiatives</span></div>`;
+    for (const it of items) {
+      const pill = it.kind === "order" ? "teal" : "coral";
+      const saved = ratings[it.id] || {};
+      const pref  = round === 2 ? (r1Ratings[it.id] || {}) : {};
+      const eff = saved.E != null ? saved.E : (pref.E != null ? pref.E : null);
+      const imp = saved.I != null ? saved.I : (pref.I != null ? pref.I : null);
+      const ter = saved.T != null ? saved.T : (pref.T != null ? pref.T : null);
+      const cm  = (comments[it.id] || "").replace(/</g, "&lt;");
+      const pillRow = (dim, cur) => {
+        let r = `<div class="pill-row" data-dim-row="${dim}">`;
+        for (let v = 1; v <= 5; v++) {
+          const act = cur === v ? ` active ${dimClass(dim)}` : "";
+          r += `<button type="button" class="pill-btn${act}" data-dim="${dim}" data-val="${v}"
+                   onclick="saveRating(${round}, ${it.id}, '${dim}', ${v})">${v}</button>`;
+        }
+        r += `<span class="pill-scale">1 = low &middot; 5 = high</span></div>`;
+        return r;
+      };
+      const prefNote = (round === 2 && saved.E == null && saved.I == null && saved.T == null
+                        && (pref.E != null || pref.I != null || pref.T != null))
+        ? `<div class="vc-pre">Your Round 1 rating is pre-filled below. Click any pill to confirm or change.</div>`
+        : "";
+      html += `
+        <div class="vote-card" data-id="${it.id}" data-round="${round}">
+          <div class="vc-header">
+            <div class="id-badge ${it.kind}">${it.id}</div>
+            <div class="vc-title-block">
+              <div class="vc-cat"><span class="pill ${pill}">${it.cat}</span></div>
+              <div class="vc-title">${it.title}</div>
+            </div>
+          </div>
+          <div class="vc-anchor"><strong>Data anchor.</strong> ${it.anchor}</div>
+          <div class="vc-anchor"><strong>Target.</strong> ${it.target}</div>
+          <div class="vc-anchor" style="margin-top:6px;color:var(--grey);">Pre-vote estimate &middot;
+            <b>E ${it.pre.E.toFixed(1)}</b> &middot;
+            <b>I ${it.pre.I.toFixed(1)}</b> &middot;
+            <b>T ${it.pre.T.toFixed(1)}</b></div>
+          ${prefNote}
+
+          <div class="dim-block">
+            <div class="dim-head">
+              <div class="dim-name"><span class="d-dot" style="background:var(--coral);"></span>Effort</div>
+              <div class="dim-help">How much work to implement?</div>
+            </div>
+            ${pillRow("E", eff)}
+          </div>
+          <div class="dim-block">
+            <div class="dim-head">
+              <div class="dim-name"><span class="d-dot" style="background:var(--teal);"></span>Impact</div>
+              <div class="dim-help">How much will this move the KPIs / standard of care?</div>
+            </div>
+            ${pillRow("I", imp)}
+          </div>
+          <div class="dim-block">
+            <div class="dim-head">
+              <div class="dim-name"><span class="d-dot" style="background:var(--gold);"></span>Interest</div>
+              <div class="dim-help">How strongly do you personally want this?</div>
+            </div>
+            ${pillRow("T", ter)}
+          </div>
+
+          <div class="dim-block">
+            <label class="small" style="display:block;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Comment (optional)</label>
+            <textarea class="vc-comment" placeholder="Dissent, caveat, hidden dependency, or context..."
+              oninput="saveComment(${round}, ${it.id}, this.value)">${cm}</textarea>
+          </div>
+        </div>`;
+    }
+  }
+  container.innerHTML = html;
+  updateProgress(round);
+}
+
+function dimClass(dim) {
+  return dim === "E" ? "effort" : (dim === "I" ? "impact" : "interest");
+}
+
+function updateProgress(round) {
+  const ratings = loadRatings(round);
+  let done = 0;
+  for (const it of INITIATIVES) {
+    const r = ratings[it.id];
+    if (r && Number.isFinite(r.E) && Number.isFinite(r.I) && Number.isFinite(r.T)) done++;
+  }
+  const label = document.getElementById(`r${round}-progress`);
+  if (label) label.textContent = `${done} / ${INITIATIVES.length}`;
+  const bar = document.getElementById(`r${round}-progress-bar`);
+  if (bar) bar.style.width = `${(done / INITIATIVES.length) * 100}%`;
+  const warn = document.getElementById(`r${round}-submit-warning`);
+  if (warn) {
+    if (done === 0) warn.textContent = "No ratings yet.";
+    else if (done < INITIATIVES.length) warn.textContent =
+      `You've rated ${done} of ${INITIATIVES.length}. You can still submit; unrated items will not count toward the group tally.`;
+    else warn.textContent = "";
+  }
+}
+
+// ----------  SUBMISSION CODES ----------
+function encodeSubmission(payload) {
+  const json = JSON.stringify(payload);
+  const utf8 = new TextEncoder().encode(json);
+  let binary = "";
+  for (const byte of utf8) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function decodeSubmission(code) {
+  let b64 = code.replace(/-/g, "+").replace(/_/g, "/");
+  while (b64.length % 4) b64 += "=";
+  const bytes = Uint8Array.from(atob(b64), ch => ch.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function buildSubmission(round) {
+  const name = (document.getElementById(`r${round}-name`).value || "").trim();
+  const ratings = loadRatings(round);
+  const comments = loadComments(round);
+  const v = [];
+  for (const it of INITIATIVES) {
+    const r = ratings[it.id] || {};
+    const cm = (comments[it.id] || "").trim();
+    if (r.E == null && r.I == null && r.T == null && !cm) continue;
+    v.push({
+      i: it.id,
+      E: Number.isFinite(r.E) ? r.E : null,
+      I: Number.isFinite(r.I) ? r.I : null,
+      T: Number.isFinite(r.T) ? r.T : null,
+      c: cm || undefined,
+    });
+  }
+  return { n: name, r: round, t: Date.now(), v };
+}
+
+function generateSubmissionCode(round) {
+  const sub = buildSubmission(round);
+  if (!sub.n) {
+    alert("Please enter your name before generating the code.");
+    const el = document.getElementById(`r${round}-name`);
+    if (el) el.focus();
+    return;
+  }
+  if (!sub.v.length) {
+    alert("No ratings yet — nothing to submit.");
+    return;
+  }
+  const code = `CPD${round}.v1.${encodeSubmission(sub)}`;
+  const wrap = document.getElementById(`r${round}-code-output`);
+  const ta   = document.getElementById(`r${round}-code-text`);
+  if (ta) ta.value = code;
+  if (wrap) wrap.style.display = "block";
+  if (wrap) wrap.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function copyCode(round) {
+  const ta = document.getElementById(`r${round}-code-text`);
+  if (!ta || !ta.value) return;
+  ta.select();
+  const btn = event && event.target ? event.target : null;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(() => flashButton(btn, "Copied!"));
+  } else {
+    document.execCommand("copy");
+    flashButton(btn, "Copied!");
+  }
+}
+
+function emailCode(round) {
+  const ta = document.getElementById(`r${round}-code-text`);
+  if (!ta || !ta.value) return;
+  const name = (document.getElementById(`r${round}-name`).value || "Anonymous").trim();
+  const subject = encodeURIComponent(`Chest Pain Delphi — Round ${round} submission from ${name}`);
+  const body = encodeURIComponent(
+    `Hi Tehreem,\n\nRound ${round} submission from ${name}.\n\nPaste the code below into the admin panel:\n\n${ta.value}\n\n— sent from the Chest Pain Delphi platform`
+  );
+  window.location.href = `mailto:${CONFIG.ADMIN_EMAIL}?subject=${subject}&body=${body}`;
+}
+
+function flashButton(btn, msg) {
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.textContent = msg;
+  setTimeout(() => { btn.textContent = orig; }, 1400);
+}
+
+// ----------  LOCK STATE ----------
+function getLock(key) {
+  const v = localStorage.getItem("cp-delphi-lock-" + key);
+  return v === null ? "locked" : v;
+}
+function setLock(key, val) {
+  localStorage.setItem("cp-delphi-lock-" + key, val);
+}
+function applyLockState() {
+  const r1 = getLock("r1");
+  const r2req = getLock("r2req");
+  const r2 = getLock("r2");
+  document.getElementById("r1-locked").style.display    = r1 === "unlocked" ? "none" : "block";
+  document.getElementById("r1-unlocked").style.display  = r1 === "unlocked" ? "block" : "none";
+  document.getElementById("r2-locked").style.display    = r2req === "unlocked" ? "none" : "block";
+  document.getElementById("r2-unlocked").style.display  = r2req === "unlocked" ? "block" : "none";
+  document.getElementById("r2r-locked").style.display   = r2 === "unlocked" ? "none" : "block";
+  document.getElementById("r2r-unlocked").style.display = r2 === "unlocked" ? "block" : "none";
+
+  document.getElementById("lock-r1").innerHTML    = r1 === "unlocked" ? "&#128275;" : "&#128274;";
+  document.getElementById("lock-r2req").innerHTML = r2req === "unlocked" ? "&#128275;" : "&#128274;";
+  document.getElementById("lock-r2").innerHTML    = r2 === "unlocked" ? "&#128275;" : "&#128274;";
+
+  for (const k of ["r1","r2req","r2"]) {
+    const btn = document.getElementById("tog-" + k);
+    if (!btn) continue;
+    const st = getLock(k);
+    btn.className = "toggle-btn " + st;
+    btn.textContent = st === "unlocked" ? "UNLOCKED (click to lock)" : "LOCKED (click to unlock)";
+  }
+}
+function toggleLock(key) {
+  setLock(key, getLock(key) === "unlocked" ? "locked" : "unlocked");
+  applyLockState();
+}
+
+// ----------  ADMIN GATE ----------
+function submitAdmin(e) {
+  e.preventDefault();
+  const pw = document.getElementById("admin-pw").value;
+  if (pw === CONFIG.ADMIN_PASSWORD) {
+    document.getElementById("admin-locked").style.display = "none";
+    document.getElementById("admin-unlocked").style.display = "block";
+    applyLockState();
+    rerenderResults(1);
+    rerenderResults(2);
+  } else {
+    document.getElementById("admin-err").textContent = "Incorrect password.";
+  }
+  return false;
+}
+// ----------  STATS HELPERS ----------
+function asNum(s) { const v = parseFloat(s); return isFinite(v) ? v : null; }
+function mean(a) { return a.length ? a.reduce((x,y)=>x+y,0)/a.length : null; }
+function sd(a) {
+  if (a.length < 2) return 0;
+  const m = mean(a);
+  return Math.sqrt(a.reduce((s,x)=>s+(x-m)*(x-m),0) / (a.length - 1));
+}
+
+// ----------  ADMIN: AGGREGATE SUBMISSIONS FROM PASTED CODES ----------
+function loadSubmissions(round) {
+  try { return JSON.parse(localStorage.getItem(submissionsKey(round)) || "[]"); }
+  catch (e) { return []; }
+}
+function saveSubmissions(round, arr) {
+  localStorage.setItem(submissionsKey(round), JSON.stringify(arr));
+}
+
+function aggregateRound(round) {
+  const ta = document.getElementById(`r${round}-paste`);
+  if (!ta) return;
+  const lines = ta.value.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
+  const prefix = `CPD${round}.v1.`;
+  const errors = [];
+  const added = [];
+  for (const line of lines) {
+    // Extract the first CPD code token from the line (members may paste full emails)
+    const m = line.match(/CPD[12]\.v1\.[A-Za-z0-9_\-]+/);
+    if (!m) { errors.push(`Could not find a CPD code on line: ${truncate(line, 80)}`); continue; }
+    const code = m[0];
+    if (!code.startsWith(prefix)) {
+      errors.push(`Code is for Round ${code[3]}, not Round ${round}: ${truncate(code, 60)}`);
+      continue;
+    }
+    let payload;
+    try { payload = decodeSubmission(code.slice(prefix.length)); }
+    catch (e) { errors.push(`Could not decode: ${truncate(code, 60)}`); continue; }
+    if (!payload || payload.r !== round || !Array.isArray(payload.v)) {
+      errors.push(`Malformed submission: ${truncate(code, 60)}`);
+      continue;
+    }
+    added.push(payload);
+  }
+  // Merge with existing, dedup by (lowercase name), keep latest by t
+  const existing = loadSubmissions(round);
+  const merged = new Map();
+  for (const s of existing) merged.set((s.n || "").toLowerCase(), s);
+  for (const s of added) {
+    const key = (s.n || "").toLowerCase();
+    const prev = merged.get(key);
+    if (!prev || (s.t || 0) >= (prev.t || 0)) merged.set(key, s);
+  }
+  const final = Array.from(merged.values()).sort((a, b) => (a.n || "").localeCompare(b.n || ""));
+  saveSubmissions(round, final);
+
+  const status = document.getElementById(`r${round}-agg-status`);
+  if (status) {
+    const nowList = final.map(s => `${s.n} (${s.v.length} rated)`).join(", ");
+    let msg = `<strong>${final.length}</strong> panelist ${final.length === 1 ? "submission" : "submissions"} aggregated for Round ${round}.`;
+    if (nowList) msg += `<br><span class="muted">Members: ${nowList}</span>`;
+    if (errors.length) msg += `<br><span style="color:var(--coral);">${errors.length} error(s): ${errors.slice(0,3).join(" | ")}${errors.length>3 ? " ..." : ""}</span>`;
+    status.innerHTML = msg;
+  }
+  // If the round-results tab is unlocked, re-render immediately
+  rerenderResults(round);
+  // Clear the paste area so re-pasting is easy
+  if (!errors.length) ta.value = "";
+}
+
+function clearRound(round) {
+  if (!confirm(`Clear ALL aggregated Round ${round} submissions? This only affects the admin's view — member submissions are still in their own sent email.`)) return;
+  saveSubmissions(round, []);
+  const status = document.getElementById(`r${round}-agg-status`);
+  if (status) status.innerHTML = `<span class="muted">Cleared.</span>`;
+  rerenderResults(round);
+}
+
+function exportAll() {
+  const out = { r1: loadSubmissions(1), r2: loadSubmissions(2), exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `chest-pain-delphi-submissions-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function restoreAll() {
+  const ta = document.getElementById("restore-paste");
+  if (!ta || !ta.value.trim()) return;
+  let obj;
+  try { obj = JSON.parse(ta.value); }
+  catch (e) {
+    const st = document.getElementById("restore-status");
+    if (st) st.innerHTML = `<span style="color:var(--coral);">Could not parse JSON.</span>`;
+    return;
+  }
+  if (Array.isArray(obj.r1)) saveSubmissions(1, obj.r1);
+  if (Array.isArray(obj.r2)) saveSubmissions(2, obj.r2);
+  const st = document.getElementById("restore-status");
+  if (st) st.innerHTML = `<span style="color:var(--teal-text);">Restored ${(obj.r1||[]).length} R1 and ${(obj.r2||[]).length} R2 submissions.</span>`;
+  ta.value = "";
+  rerenderResults(1);
+  rerenderResults(2);
+}
+
+function truncate(s, n) { return s.length <= n ? s : s.slice(0, n - 1) + "\u2026"; }
+
+// ----------  TALLY LOCAL SUBMISSIONS ----------
+function tallyFromSubmissions(subs) {
+  return INITIATIVES.map(it => {
+    const rs = subs.map(s => s.v.find(r => r.i === it.id))
+      .filter(r => r && Number.isFinite(r.E) && Number.isFinite(r.I) && Number.isFinite(r.T));
+    const E = rs.map(r => r.E);
+    const I = rs.map(r => r.I);
+    const T = rs.map(r => r.T);
+    return {
+      ...it,
+      n: rs.length,
+      mE: rs.length ? mean(E) : null, sE: rs.length ? sd(E) : 0,
+      mI: rs.length ? mean(I) : null, sI: rs.length ? sd(I) : 0,
+      mT: rs.length ? mean(T) : null, sT: rs.length ? sd(T) : 0,
+      commentCount: subs.reduce((acc, s) => acc + (s.v.find(r => r.i === it.id && (r.c || "").trim()) ? 1 : 0), 0),
+      responses: subs.length,
+    };
+  });
+}
+
+// ----------  SCATTER VIZ ----------
+function sdColor(s) {
+  // SD 0.0 (tight) -> teal; SD 0.75 (threshold) -> gold; SD 1.2+ (split) -> coral
+  if (s <= 0.5)  return "#2D8B8B";
+  if (s <= 0.75) return "#5BA685";
+  if (s <= 1.0)  return "#D4A547";
+  return "#E07856";
+}
+function renderScatter(divId, tallied) {
+  if (!tallied) {
+    document.getElementById(divId).innerHTML = `<div class="placeholder"><strong>No response data yet.</strong><br>Results will populate once the admin aggregates member submission codes in the Admin tab.</div>`;
+    return;
+  }
+  const pts = tallied.filter(t => t.n > 0);
+  if (pts.length === 0) {
+    document.getElementById(divId).innerHTML = `<div class="placeholder"><strong>No responses recorded yet.</strong><br>Paste member submission codes in the Admin tab to populate this view.</div>`;
+    return;
+  }
+  const composite = t => (t.sE + t.sI + t.sT) / 3;
+  const orderPts = pts.filter(t => t.kind === "order");
+  const dataPts  = pts.filter(t => t.kind === "data");
+
+  function trace(subset, name, symbol) {
+    return {
+      x: subset.map(t => t.mE),
+      y: subset.map(t => t.mI),
+      text: subset.map(t => String(t.id)),
+      customdata: subset.map(t => [
+        t.title, t.n, t.mE.toFixed(2), t.sE.toFixed(2),
+        t.mI.toFixed(2), t.sI.toFixed(2),
+        t.mT.toFixed(2), t.sT.toFixed(2),
+        composite(t).toFixed(2), t.commentCount
+      ]),
+      mode: "markers+text",
+      type: "scatter",
+      name: name,
+      marker: {
+        size: subset.map(t => 18 + t.mT * 7),
+        color: subset.map(t => sdColor(composite(t))),
+        line: { width: 2, color: "white" },
+        symbol: symbol,
+      },
+      textposition: "middle center",
+      textfont: { color: "white", size: 11, family: "-apple-system, BlinkMacSystemFont, sans-serif", weight: 700 },
+      hovertemplate:
+        "<b>#%{text} &middot; %{customdata[0]}</b><br>" +
+        "n = %{customdata[1]}<br>" +
+        "Effort: %{customdata[2]} &plusmn; %{customdata[3]}<br>" +
+        "Impact: %{customdata[4]} &plusmn; %{customdata[5]}<br>" +
+        "Interest: %{customdata[6]} &plusmn; %{customdata[7]}<br>" +
+        "Composite SD: %{customdata[8]}<br>" +
+        "Comments: %{customdata[9]}<extra></extra>",
+    };
+  }
+
+  const shapes = [
+    { type: "line", x0: CONFIG.EFFORT_CUT, x1: CONFIG.EFFORT_CUT, y0: 1, y1: 5,
+      line: { color: "#9A9A9A", width: 1, dash: "dash" } },
+    { type: "line", x0: 1, x1: 5, y0: CONFIG.IMPACT_CUT, y1: CONFIG.IMPACT_CUT,
+      line: { color: "#9A9A9A", width: 1, dash: "dash" } },
+  ];
+  const annotations = [
+    { x: 1.2, y: 4.85, text: "QUICK WIN",     showarrow: false, font: { color: "#2D8B8B", size: 11, weight: 700 } },
+    { x: 4.8, y: 4.85, text: "STRATEGIC BET", showarrow: false, font: { color: "#1F3A5F", size: 11, weight: 700 } },
+    { x: 1.2, y: 1.15, text: "FILL-IN",       showarrow: false, font: { color: "#D4A547", size: 11, weight: 700 } },
+    { x: 4.8, y: 1.15, text: "RECONSIDER",    showarrow: false, font: { color: "#E07856", size: 11, weight: 700 } },
+  ];
+
+  const layout = {
+    xaxis: { title: "Group mean Effort &rarr;", range: [0.6, 5.4], gridcolor: "#E8E4DB", dtick: 1, zeroline: false },
+    yaxis: { title: "Group mean Impact &rarr;", range: [0.6, 5.4], gridcolor: "#E8E4DB", dtick: 1, zeroline: false },
+    shapes: shapes,
+    annotations: annotations,
+    margin: { l: 60, r: 40, t: 40, b: 60 },
+    paper_bgcolor: "white",
+    plot_bgcolor: "#FAF7F0",
+    hoverlabel: { bgcolor: "white", bordercolor: "#1F3A5F", font: { color: "#2A2A2A" } },
+    legend: { orientation: "h", x: 0, y: -0.15 },
+  };
+
+  const traces = [];
+  if (orderPts.length) traces.push(trace(orderPts, "Order set design", "circle"));
+  if (dataPts.length)  traces.push(trace(dataPts,  "Data analysis",    "diamond"));
+
+  Plotly.newPlot(divId, traces, layout, { responsive: true, displayModeBar: false });
+}
+
+function renderDisagreeTable(tableId, tallied) {
+  if (!tallied) return;
+  const sorted = tallied.filter(t => t.n > 0).slice()
+    .sort((a,b) => ((b.sE+b.sI+b.sT) - (a.sE+a.sI+a.sT)));
+  let html = `<thead><tr>
+    <th>#</th><th>Initiative</th>
+    <th>Effort (&mu; &plusmn; SD)</th>
+    <th>Impact (&mu; &plusmn; SD)</th>
+    <th>Interest (&mu; &plusmn; SD)</th>
+    <th>n</th><th>Flag</th>
+  </tr></thead><tbody>`;
+  for (const t of sorted.slice(0, 15)) {
+    const comp = (t.sE + t.sI + t.sT) / 3;
+    const flag = comp > 1.0 ? `<span class="flag high">HIGH</span>` :
+                 comp > 0.75 ? `<span class="flag med">MED</span>` :
+                               `<span class="flag low">LOW</span>`;
+    html += `<tr>
+      <td><b>${t.id}</b></td>
+      <td>${t.title}</td>
+      <td>${t.mE.toFixed(2)} &plusmn; ${t.sE.toFixed(2)}</td>
+      <td>${t.mI.toFixed(2)} &plusmn; ${t.sI.toFixed(2)}</td>
+      <td>${t.mT.toFixed(2)} &plusmn; ${t.sT.toFixed(2)}</td>
+      <td>${t.n}</td>
+      <td>${flag}</td>
+    </tr>`;
+  }
+  html += "</tbody>";
+  document.getElementById(tableId).innerHTML = html;
+}
+
+let R1_TALLY = null, R2_TALLY = null;
+
+function rerenderResults(round) {
+  const subs = loadSubmissions(round);
+  const t = subs.length ? tallyFromSubmissions(subs) : null;
+  if (round === 1) { R1_TALLY = t; } else { R2_TALLY = t; }
+  renderScatter(round === 1 ? "r1-scatter" : "r2-scatter", t);
+  renderDisagreeTable(round === 1 ? "r1-disagree" : "r12-delta", t);
+  if (round === 2) renderQuadrantTable(t);
+
+  const el = document.getElementById(round === 1 ? "r1-stats" : "r2-stats");
+  if (el) {
+    if (!t) {
+      el.innerHTML = "";
+    } else {
+      const n = t[0].responses;
+      el.innerHTML = `<strong>${n}</strong> panelist ${n === 1 ? "submission" : "submissions"} aggregated &middot; updated ${new Date().toLocaleTimeString()}.`;
+    }
+  }
+}
+
+function renderQuadrantTable(tallied) {
+  if (!tallied) return;
+  const qOf = t => {
+    if (t.mE <= CONFIG.EFFORT_CUT && t.mI >= CONFIG.IMPACT_CUT) return "Quick Win";
+    if (t.mE >  CONFIG.EFFORT_CUT && t.mI >= CONFIG.IMPACT_CUT) return "Strategic Bet";
+    if (t.mE <= CONFIG.EFFORT_CUT && t.mI <  CONFIG.IMPACT_CUT) return "Fill-in";
+    return "Reconsider";
+  };
+  const conv = t => t.sE <= CONFIG.SD_CONVERGE && t.sI <= CONFIG.SD_CONVERGE && t.sT <= CONFIG.SD_CONVERGE;
+  const rows = tallied.filter(t => t.n > 0).slice()
+    .sort((a,b) => {
+      const order = {"Quick Win":0, "Strategic Bet":1, "Fill-in":2, "Reconsider":3};
+      return order[qOf(a)] - order[qOf(b)];
+    });
+  let html = `<thead><tr>
+    <th>#</th><th>Initiative</th><th>Quadrant</th><th>Status</th>
+    <th>Effort</th><th>Impact</th><th>Interest</th>
+  </tr></thead><tbody>`;
+  for (const t of rows) {
+    const q = qOf(t);
+    const status = conv(t) ? `<span class="flag low">CONVERGED</span>` : `<span class="flag med">ADJUDICATE</span>`;
+    html += `<tr>
+      <td><b>${t.id}</b></td>
+      <td>${t.title}</td>
+      <td>${q}</td>
+      <td>${status}</td>
+      <td>${t.mE.toFixed(2)}</td>
+      <td>${t.mI.toFixed(2)}</td>
+      <td>${t.mT.toFixed(2)}</td>
+    </tr>`;
+  }
+  html += "</tbody>";
+  const tbl = document.getElementById("r2-quadrants");
+  if (tbl) tbl.innerHTML = html;
+}
+
+function maybeRenderResults(round) {
+  const lockKey = round === 1 ? "r1" : "r2";
+  if (getLock(lockKey) !== "unlocked") return;
+  rerenderResults(round);
+}
+
+// ----------  INIT ----------
+window.addEventListener("DOMContentLoaded", () => {
+  checkGate();
+  renderVoteCards(1);
+  renderVoteCards(2);
+  loadIdentity(1);
+  loadIdentity(2);
+  updateProgress(1);
+  updateProgress(2);
+  applyLockState();
+});
+</script>
+
+</body>
+</html>
