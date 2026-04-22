@@ -465,11 +465,11 @@
 <nav class="tabs" role="tablist" aria-label="Delphi platform sections">
   <button id="tab-overview"  class="active" role="tab" aria-selected="true"  aria-controls="overview"  data-tab="overview">Overview</button>
   <button id="tab-dashboard"               role="tab" aria-selected="false" aria-controls="dashboard" data-tab="dashboard">Data Dashboard</button>
-  <button id="tab-context"                 role="tab" aria-selected="false" aria-controls="context"   data-tab="context">Context &amp; Method</button>
   <button id="tab-round1"                  role="tab" aria-selected="false" aria-controls="round1"    data-tab="round1">R1 Rating</button>
   <button id="tab-r1results"               role="tab" aria-selected="false" aria-controls="r1results" data-tab="r1results">R1 Results<span class="lock-ind" id="lock-r1" aria-label="Locked until Round 1 closes" title="Opens after Round 1 closes">LOCKED</span></button>
   <button id="tab-round2"                  role="tab" aria-selected="false" aria-controls="round2"    data-tab="round2">R2 Rating<span class="lock-ind" id="lock-r2req" aria-label="Locked until Round 1 discussion complete" title="Opens after task force discusses R1 results">LOCKED</span></button>
   <button id="tab-r2results"               role="tab" aria-selected="false" aria-controls="r2results" data-tab="r2results">R2 Results<span class="lock-ind" id="lock-r2" aria-label="Locked until Round 2 closes" title="Opens after Round 2 closes">LOCKED</span></button>
+  <button id="tab-context"                 role="tab" aria-selected="false" aria-controls="context"   data-tab="context">Additional Info</button>
   <button id="tab-admin"                   role="tab" aria-selected="false" aria-controls="admin"     data-tab="admin">Admin</button>
 </nav>
 
@@ -478,68 +478,57 @@
 <!-- ========== OVERVIEW ========== -->
 <section id="overview" class="tab-content active" role="tabpanel" aria-labelledby="tab-overview" tabindex="-1">
 
+  <div class="card">
+    <h2>How this survey works</h2>
+    <ol style="margin:8px 0 4px;padding-left:22px;line-height:1.7;">
+      <li><strong>Review the data.</strong> Open the <strong>Data Dashboard</strong> tab to see how we currently order on chest pain patients in our ED.</li>
+      <li><strong>Rate 24 proposed ideas</strong> &mdash; data-informed suggestions for new analytics or informatics builds &mdash; on three axes:
+        <div class="dim-legend" style="margin-top:10px;">
+          <div class="dim-cell">
+            <div class="d-label"><span class="d-dot" style="background:var(--coral);"></span> Effort (1-5)</div>
+            <div class="d-desc">How much work would this take? 1 = trivial, 5 = multi-month build.</div>
+          </div>
+          <div class="dim-cell">
+            <div class="d-label"><span class="d-dot" style="background:var(--teal);"></span> Impact (1-5)</div>
+            <div class="d-desc">How much would this improve patient care, quality measures, or ED operations? 1 = marginal, 5 = transformative.</div>
+          </div>
+          <div class="dim-cell">
+            <div class="d-label"><span class="d-dot" style="background:var(--gold);"></span> Interest (1-5)</div>
+            <div class="d-desc">How personally invested are you to work on this? 1 = not me, 5 = I'd lead it.</div>
+          </div>
+        </div>
+      </li>
+      <li style="margin-top:10px;"><strong>Submit before our next meeting.</strong> Generate your code on the <strong>R1 Rating</strong> tab and email it to Tehreem.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>What happens next</h2>
+    <ol style="margin:8px 0 4px;padding-left:22px;line-height:1.7;">
+      <li><strong>Next meeting.</strong> The Quality Workgroup will walk through the evidence supporting or opposing individual components of the chest pain order set.</li>
+      <li><strong>Round 2 survey.</strong> After the meeting, you'll re-rate the same 24 items with fresh context.</li>
+      <li><strong>Output.</strong> Final Value Matrix &rarr; EBP Committee &rarr; System Medical Directors.</li>
+    </ol>
+  </div>
+
   <div class="card-grid">
     <div class="stat-card">
-      <div class="label">Candidate initiatives</div>
+      <div class="label">Ideas to rate</div>
       <div class="value">24</div>
-      <div class="note">13 order-set design + 11 data-analysis</div>
     </div>
     <div class="stat-card coral">
-      <div class="label">Rating dimensions</div>
-      <div class="value">3 + 1</div>
-      <div class="note">Effort &middot; Impact &middot; Interest (1-5) plus comment</div>
+      <div class="label">Axes per item</div>
+      <div class="value">3</div>
+      <div class="note">Effort &middot; Impact &middot; Interest</div>
     </div>
     <div class="stat-card gold">
       <div class="label">Rounds</div>
       <div class="value">2</div>
-      <div class="note">With deliberation meeting between rounds</div>
     </div>
     <div class="stat-card navy">
-      <div class="label">Panel size target</div>
-      <div class="value">~15</div>
-      <div class="note">Full Front-End Care Standardization Task Force</div>
+      <div class="label">Time to complete</div>
+      <div class="value">~15 min</div>
     </div>
-  </div>
-
-  <div class="card">
-    <h2>What you're voting on</h2>
-    <p>This platform asks every task force member to rate <strong>all 24 candidate chest-pain initiatives</strong> on three axes, producing a panel-scored Value Matrix we can take to the EBP Committee and System Medical Directors.</p>
-    <div class="dim-legend">
-      <div class="dim-cell">
-        <div class="d-label"><span class="d-dot" style="background:var(--coral);"></span> Effort (1-5)</div>
-        <div class="d-desc">How much informatics build + task-force + analytics work will this take? 1 = trivial, 5 = multi-month build.</div>
-      </div>
-      <div class="dim-cell">
-        <div class="d-label"><span class="d-dot" style="background:var(--teal);"></span> Impact (1-5)</div>
-        <div class="d-desc">Expected impact on patients, clinicians, ACEP71/quality measures, and ED operations. 1 = marginal, 5 = transformative.</div>
-      </div>
-      <div class="dim-cell">
-        <div class="d-label"><span class="d-dot" style="background:var(--gold);"></span> Interest (1-5)</div>
-        <div class="d-desc">How personally engaged you are to work on or champion this. 1 = not me, 5 = I'd lead it.</div>
-      </div>
-    </div>
-    <p class="small muted">Per initiative you can also leave an optional free-text comment. Comments drive Meeting 2 deliberation &mdash; they are the most valuable data we collect.</p>
-  </div>
-
-  <div class="card">
-    <h2>Why multidimensional instead of classical Delphi?</h2>
-    <p>A single priority vote hides <em>where</em> panelists disagree. Two members can both rate an initiative "high priority" while one sees it as a Quick Win (low effort) and the other as a Strategic Bet (high effort). That matters for sequencing.</p>
-    <p>This platform rates every initiative on three axes. Between rounds you'll see the group's mean position on the Effort × Impact plane with Interest as bubble size &mdash; a live version of the Value Matrix. Items with <strong>wide spread</strong> on any axis are flagged for deliberation at Meeting 2. Round 2 is your chance to revise after seeing the group view.</p>
-    <p>The output isn't a consensus statement &mdash; it's a populated, panel-scored Value Matrix ready for the EBP Committee submission.</p>
-  </div>
-
-  <div class="card">
-    <h2>Timeline</h2>
-    <table style="width:100%;border-collapse:collapse;font-size:14px;">
-      <tr><td style="padding:8px 12px;border-bottom:1px solid var(--light);width:180px;"><strong>Round 1 open</strong></td>
-          <td style="padding:8px 12px;border-bottom:1px solid var(--light);">Now through <em>[Meeting 2 eve &mdash; edit in config]</em></td></tr>
-      <tr><td style="padding:8px 12px;border-bottom:1px solid var(--light);"><strong>Meeting 2</strong></td>
-          <td style="padding:8px 12px;border-bottom:1px solid var(--light);">Review R1 results, discuss high-spread items, orient to Round 2</td></tr>
-      <tr><td style="padding:8px 12px;border-bottom:1px solid var(--light);"><strong>Round 2 open</strong></td>
-          <td style="padding:8px 12px;border-bottom:1px solid var(--light);">Post-Meeting 2 through <em>[R2 close &mdash; edit in config]</em></td></tr>
-      <tr><td style="padding:8px 12px;"><strong>Output</strong></td>
-          <td style="padding:8px 12px;">Locked Value Matrix &rarr; EBP Committee &rarr; System Medical Directors</td></tr>
-    </table>
   </div>
 
 </section>
@@ -720,7 +709,7 @@
 
     <div class="card">
       <h2>Converged assignments (final Value Matrix)</h2>
-      <p class="small muted">Quadrant classification using the same thresholds as the pre-vote matrix (Effort cut = 2.5, Impact cut = 3.0). Items with SD &le; 0.75 on every axis are marked <em>converged</em>; others are flagged for co-lead adjudication.</p>
+      <p class="small muted">Quadrant classification uses fixed thresholds (Effort cut = 2.5, Impact cut = 3.0) applied to the panel's final means. Items with SD &le; 0.75 on every axis are marked <em>converged</em>; others are flagged for co-lead adjudication.</p>
       <table class="disagree-table" id="r2-quadrants"></table>
     </div>
 
@@ -742,43 +731,17 @@
 
 </section>
 
-<!-- ========== CONTEXT & METHOD ========== -->
+<!-- ========== ADDITIONAL INFO ========== -->
 <section id="context" class="tab-content" role="tabpanel" aria-labelledby="tab-context" tabindex="-1">
 
   <div class="card">
-    <h2>Project charter (for context)</h2>
-    <p>Mount Sinai Hospital Department of Emergency Medicine <strong>Front-End Care Standardization Task Force</strong>. Building standardized, evidence-based order sets for high-volume ED chief complaints. Current focus: <strong>chest pain</strong>.</p>
-    <p><strong>Why:</strong> Align clinical practice with evidence-based medicine, reduce provider cognitive load, streamline CDS tools, optimize resource utilization across the health system.</p>
-    <p><strong>KPIs:</strong> Time to First Order (TTFO) &middot; ED Length of Stay &middot; Order Set Utilization Rate &middot; Resource Utilization (unnecessary testing).</p>
-    <p><strong>Approval path:</strong> EBP Committee &rarr; System Medical Directors Meeting &rarr; System Nursing Directors Meeting &rarr; Epic licensing.</p>
-  </div>
-
-  <div class="card">
-    <h2>ACEP71 (quality measure anchor)</h2>
-    <p><strong>ACEP71 &mdash; Coagulation Studies in Patients Presenting to the ED with No Coagulopathy or Bleeding.</strong> Process measure. Percentage of ED visits for patients &ge; 18 during which PT, PTT, or INR were ordered by an emergency care provider, with defined clinical exclusions (end-stage liver disease, coagulopathy, anticoagulant use, bleeding, atrial fibrillation, trauma, PE/DVT, etc.).</p>
-    <p><strong>Direction:</strong> Lower is better &mdash; an anti-overuse measure. The chest pain data shows ~4,500 coag orders + 1,200 D-Dimers at Rank 1 of ordering sessions alone &mdash; the largest single ACEP71 opportunity in the baseline.</p>
-  </div>
-
-  <div class="methods-box">
-    <h3>Multidimensional Delphi &mdash; method summary</h3>
-    <ol>
-      <li><strong>Round 1.</strong> Every panelist rates all 24 initiatives on Effort, Impact, and Interest (1-5). Optional comment per item.</li>
-      <li><strong>Between rounds.</strong> Group mean and SD are computed per dimension. A scatter plot shows the group's Value Matrix placement. Items with SD &gt; 0.75 on any axis are flagged for Meeting 2 deliberation.</li>
-      <li><strong>Meeting 2.</strong> Task force reviews R1 scatter, discusses flagged items, surfaces hidden constraints (e.g., upcoming Epic upgrade dependencies) that should reframe effort or impact.</li>
-      <li><strong>Round 2.</strong> Panelists see the group view, revise their ratings.</li>
-      <li><strong>Convergence criterion.</strong> An item is <em>converged</em> if SD &le; 0.75 on all three axes. Converged items lock to their final quadrant. Unconverged items go to co-lead adjudication at Meeting 3.</li>
-      <li><strong>Output.</strong> Populated Value Matrix with 95% CIs, ready for EBP Committee.</li>
-    </ol>
-  </div>
-
-  <div class="card">
-    <h2>Team &amp; governance</h2>
-    <ul style="margin:6px 0;padding-left:22px;">
+    <h2>Workgroup leads</h2>
+    <ul style="margin:6px 0;padding-left:22px;line-height:1.9;">
       <li><strong>Project Sponsors:</strong> Olivia, Kristen</li>
       <li><strong>Medical Director Lead:</strong> Tehreem</li>
-      <li><strong>Triage Nursing Chief Complaints:</strong> Delaney</li>
-      <li><strong>Ideal State Order Sets Workgroup (Quality):</strong> Ilana (lead) &middot; Emma, Amina, Sam R, Sydney, Taylor M</li>
-      <li><strong>Current State Data Workgroup (Informatics):</strong> Adam (lead) &middot; Ragini, Emma</li>
+      <li><strong>Triage Nursing Chief Complaints Lead:</strong> Delaney</li>
+      <li><strong>Ideal State Order Sets Workgroup (Quality) Lead:</strong> Ilana</li>
+      <li><strong>Current State Data Workgroup (Informatics) Lead:</strong> Adam</li>
     </ul>
   </div>
 
@@ -908,7 +871,7 @@ const CONFIG = {
   // Convergence threshold — group SD at or below this is "converged" on that dimension
   SD_CONVERGE: 0.75,
 
-  // Quadrant thresholds — matches the pre-vote Value Matrix
+  // Quadrant thresholds — applied post-vote to panel mean Effort/Impact
   EFFORT_CUT: 2.5,
   IMPACT_CUT: 3.0,
 };
@@ -920,173 +883,149 @@ const CONFIG = {
 const INITIATIVES = [
   // ----- ORDER SET DESIGN (13) -----
   { id: 1,  kind:"order", domain:"Catalog & Defaults",
-    title:"Collapse duplicate CBC synonyms",
-    cat:"Order Set — Catalog",
-    anchor:"Baseline catalog contains two CBC+Plt+Diff synonyms totaling 7,671 Rank 1 orders. Providers pick inconsistently; no clinical difference.",
-    target:"Single canonical CBC+Diff order in the chest pain set. Retire synonyms at set level.",
-    pre:{E:1.0, I:1.8, T:4.5}},
-
-  { id: 2,  kind:"order", domain:"Catalog & Defaults",
     title:"Remove CMP from default (BMP-only in set)",
     cat:"Order Set — Catalog",
     anchor:"System Rank 1 CMP rate is elevated vs. Main ED (1.2%). BMP usually sufficient for undifferentiated chest pain without hepatic concern.",
-    target:"Replace CMP with BMP as default in chest pain set; CMP remains one click away.",
-    pre:{E:1.3, I:2.4, T:4.0}},
+    target:"Replace CMP with BMP as default in chest pain set; CMP remains one click away."},
 
-  { id: 3,  kind:"order", domain:"CDS Prompts",
+  { id: 2,  kind:"order", domain:"CDS Prompts",
     title:"Coagulation study rationalization (ACEP71)",
     cat:"Order Set — CDS Prompt",
     anchor:"~4,500 coag orders (PT/INR, APTT) at Rank 1 system-wide. Most chest pain patients meet zero ACEP71 exclusions — direct overuse.",
-    target:"Hard-stop CDS prompting for ACEP71 exclusion indication before PT/INR/APTT can be placed from the chest pain set.",
-    pre:{E:3.0, I:3.9, T:4.5}},
+    target:"Hard-stop CDS prompting for ACEP71 exclusion indication before PT/INR/APTT can be placed from the chest pain set."},
 
-  { id: 4,  kind:"order", domain:"CDS Prompts",
+  { id: 3,  kind:"order", domain:"CDS Prompts",
     title:"D-Dimer gated by PERC / Wells",
     cat:"Order Set — CDS Prompt",
     anchor:"~1,200 D-Dimers at Rank 1 system-wide; Main ED holds at 1.7% (closer to evidence-based target).",
-    target:"D-Dimer order fires a PERC / Wells mini-calculator; bypass requires documented indication.",
-    pre:{E:2.7, I:3.5, T:4.0}},
+    target:"D-Dimer order fires a PERC / Wells mini-calculator; bypass requires documented indication."},
 
-  { id: 5,  kind:"order", domain:"CDS Prompts",
+  { id: 4,  kind:"order", domain:"CDS Prompts",
     title:"Selective CXR with respiratory-indication prompt",
     cat:"Order Set — CDS Prompt",
     anchor:"CXR is Rank 1 for most chest pain encounters despite limited yield in low-risk, non-respiratory presentations.",
-    target:"CXR prompt asks for SpO2 / respiratory symptom confirmation before firing; default stays but documentation required.",
-    pre:{E:2.3, I:3.0, T:3.5}},
+    target:"CXR prompt asks for SpO2 / respiratory symptom confirmation before firing; default stays but documentation required."},
 
-  { id: 6,  kind:"order", domain:"CDS Prompts",
+  { id: 5,  kind:"order", domain:"CDS Prompts",
     title:"Pro-BNP gated on HF suspicion",
     cat:"Order Set — CDS Prompt",
     anchor:"Pro-BNP ordered broadly despite chest-pain evidence supporting selective use (known HF, dyspnea, edema).",
-    target:"Pro-BNP requires documented HF suspicion or equivalent indication in chest pain set.",
-    pre:{E:1.7, I:2.0, T:3.0}},
+    target:"Pro-BNP requires documented HF suspicion or equivalent indication in chest pain set."},
 
-  { id: 7,  kind:"order", domain:"CDS Prompts",
+  { id: 6,  kind:"order", domain:"CDS Prompts",
     title:"Decouple respiratory viral panel from chest pain",
     cat:"Order Set — Trigger",
     anchor:"RVP is pre-selected in some chest pain views despite no evidence base for routine chest pain.",
-    target:"Remove RVP from chest pain set; retain in respiratory/URI set.",
-    pre:{E:1.3, I:2.4, T:3.5}},
+    target:"Remove RVP from chest pain set; retain in respiratory/URI set."},
 
-  { id: 8,  kind:"order", domain:"Automation",
+  { id: 7,  kind:"order", domain:"Automation",
     title:"Auto-deferred repeat troponin at validated interval",
     cat:"Order Set — Automation",
     anchor:"Serial troponins are ordered manually, creating variation in re-check interval (2 / 3 / 6 h).",
-    target:"When initial troponin orders in set, system auto-queues the repeat at a protocol-validated interval with a single clinician confirmation.",
-    pre:{E:2.3, I:3.3, T:5.0}},
+    target:"When initial troponin orders in set, system auto-queues the repeat at a protocol-validated interval with a single clinician confirmation."},
 
-  { id: 9,  kind:"order", domain:"Bundles",
+  { id: 8,  kind:"order", domain:"Bundles",
     title:"Acetaminophen PRN bundle in order set",
     cat:"Order Set — Bundle",
     anchor:"PRN analgesia ordered ad hoc, introducing delay between triage and first dose.",
-    target:"Chest pain set offers PRN acetaminophen as a one-click option with standard dosing.",
-    pre:{E:1.0, I:1.6, T:3.0}},
+    target:"Chest pain set offers PRN acetaminophen as a one-click option with standard dosing."},
 
-  { id: 10, kind:"order", domain:"Defaults",
+  { id: 9,  kind:"order", domain:"Defaults",
     title:"Saline lock default / remove NaCl bolus as reflex",
     cat:"Order Set — Default",
     anchor:"Normal saline bolus is ordered reflexively even in stable, non-hypotensive chest pain patients.",
-    target:"Set defaults to saline lock; NaCl bolus requires explicit selection.",
-    pre:{E:1.3, I:1.6, T:3.0}},
+    target:"Set defaults to saline lock; NaCl bolus requires explicit selection."},
 
-  { id: 11, kind:"order", domain:"Risk Stratification",
+  { id: 10, kind:"order", domain:"Risk Stratification",
     title:"HEART score integrated risk-stratification gateway",
     cat:"Order Set — CDS / Risk Score",
     anchor:"Risk stratification is currently unstructured. HEART is evidence-base and well-validated; integration would drive tier branching in the order set.",
-    target:"HEART score calculator embedded at entry of chest pain set, with score-driven branching to low/intermediate/high-risk sub-sets.",
-    pre:{E:3.3, I:4.0, T:5.0}},
+    target:"HEART score calculator embedded at entry of chest pain set, with score-driven branching to low/intermediate/high-risk sub-sets."},
 
-  { id: 12, kind:"order", domain:"Safety Defaults",
+  { id: 11, kind:"order", domain:"Safety Defaults",
     title:"Aspirin 325mg auto-fire for documented ACS concern",
     cat:"Order Set — Safety Default",
     anchor:"ASA is a Class I recommendation for suspected ACS; administration is currently variable.",
-    target:"When HEART score &ge; 4 or ACS concern documented, chest pain set pre-selects ASA 325mg (with contraindication check).",
-    pre:{E:1.7, I:2.3, T:4.5}},
+    target:"When HEART score &ge; 4 or ACS concern documented, chest pain set pre-selects ASA 325mg (with contraindication check)."},
 
-  { id: 13, kind:"order", domain:"CDS Prompts",
+  { id: 12, kind:"order", domain:"CDS Prompts",
     title:"NTG SL gated on BP and ACS suspicion",
     cat:"Order Set — CDS Prompt",
     anchor:"NTG ordered without systematic BP threshold check, particularly in presentations with possible RV involvement.",
-    target:"NTG SL order in chest pain set requires BP confirmation and ACS suspicion documentation before firing.",
-    pre:{E:1.7, I:1.8, T:3.5}},
+    target:"NTG SL order in chest pain set requires BP confirmation and ACS suspicion documentation before firing."},
+
+  { id: 13, kind:"order", domain:"Catalog & Defaults",
+    title:"Default CBC to without-Diff; gate CBC+Diff behind infection concern",
+    cat:"Order Set — Catalog",
+    anchor:"CBC+Diff is the default at Rank 1 in the vast majority of chest pain encounters. The baseline catalog also contains two CBC+Plt+Diff synonyms totaling 7,671 Rank 1 orders — providers pick inconsistently, no clinical difference. Differential yield is low in uncomplicated chest pain absent infection concern; Hgb/platelets cover anemia-as-cause, occult bleed, and pre-cath screening.",
+    target:"Switch chest pain set default from CBC+Diff to a single canonical CBC without Differential (retiring the duplicate +Diff synonyms in the process). Model CBC+Diff on the respiratory viral panel pattern (Initiative #6) &mdash; available one click away with an infection-concern indication prompt before release."},
 
   // ----- DATA ANALYSIS (11) -----
   { id: 14, kind:"data", domain:"ACEP71 Baseline",
     title:"Encounter-level ACEP71 baseline with exclusions applied",
     cat:"Data Analysis — Baseline",
     anchor:"Current baseline counts coag orders but doesn't apply the ACEP71 exclusion list (liver disease, anticoagulants, A-fib, etc.).",
-    target:"Exclusion-adjusted ACEP71 numerator and denominator per ED visit, stratified by Main ED vs. system.",
-    pre:{E:2.0, I:2.6, T:4.0}},
+    target:"Exclusion-adjusted ACEP71 numerator and denominator per ED visit, stratified by Main ED vs. system."},
 
   { id: 15, kind:"data", domain:"Safety",
     title:"EKG-without-troponin cohort clinical profile",
     cat:"Data Analysis — Safety",
     anchor:"~30% of chest-pain encounters get EKG but no troponin. This is clinically appropriate for low-risk patients — but we don't have the cohort profile to confirm.",
-    target:"Demographic and clinical characterization of EKG-only cohort; miss-rate check via 30-day MACE linkage.",
-    pre:{E:1.7, I:2.0, T:4.0}},
+    target:"Demographic and clinical characterization of EKG-only cohort; miss-rate check via 30-day MACE linkage."},
 
   { id: 16, kind:"data", domain:"Risk Score",
     title:"HEART pathway feasibility count",
     cat:"Data Analysis — Risk Score",
     anchor:"Unknown what proportion of chest pain encounters have the EHR data elements needed to auto-calculate HEART.",
-    target:"Document data-element availability rate for HEART (history, EKG, age, risk factors, troponin) per encounter.",
-    pre:{E:1.7, I:2.4, T:4.0}},
+    target:"Document data-element availability rate for HEART (history, EKG, age, risk factors, troponin) per encounter."},
 
   { id: 17, kind:"data", domain:"Protocol",
     title:"Serial troponin interval analysis",
     cat:"Data Analysis — Protocol",
     anchor:"Current repeat troponin timing is unstructured. No baseline on provider variation in re-check interval.",
-    target:"Distribution of observed troponin intervals per provider; compare to protocol target (2h HS-Trop).",
-    pre:{E:1.3, I:2.1, T:3.0}},
+    target:"Distribution of observed troponin intervals per provider; compare to protocol target (2h HS-Trop)."},
 
   { id: 18, kind:"data", domain:"Waste",
     title:"Low-value ordering quantification (composite)",
     cat:"Data Analysis — Waste",
     anchor:"No current aggregate measure of low-value ordering across the 24 initiatives.",
-    target:"Composite 'low-value orders per chest pain encounter' metric, baseline and tracked through intervention.",
-    pre:{E:1.7, I:2.3, T:3.5}},
+    target:"Composite 'low-value orders per chest pain encounter' metric, baseline and tracked through intervention."},
 
   { id: 19, kind:"data", domain:"KPI Baseline",
     title:"TTFO baseline by ESI, shift, provider cohort",
     cat:"Data Analysis — KPI Baseline",
     anchor:"Time to first order (TTFO) is a task force KPI but lacks baseline with proper risk adjustment.",
-    target:"Median TTFO (triage &rarr; first chest pain set order) by ESI level, shift, and provider experience quartile.",
-    pre:{E:1.3, I:2.4, T:3.5}},
+    target:"Median TTFO (triage &rarr; first chest pain set order) by ESI level, shift, and provider experience quartile."},
 
   { id: 20, kind:"data", domain:"KPI",
     title:"ED LOS attribution by order pattern",
     cat:"Data Analysis — KPI",
     anchor:"ED LOS is a task force KPI but drivers within chest pain cohort aren't attributed.",
-    target:"Regression attributing LOS to order pattern (e.g., coag panel, full metabolic, advanced imaging).",
-    pre:{E:1.7, I:2.5, T:3.5}},
+    target:"Regression attributing LOS to order pattern (e.g., coag panel, full metabolic, advanced imaging)."},
 
   { id: 21, kind:"data", domain:"Change Management",
     title:"Provider-level variation map",
     cat:"Data Analysis — Change Management",
     anchor:"Provider ordering variation is suspected but not quantified. Needed for targeted education vs. default changes.",
-    target:"Ordering-intensity distribution per provider, normalized for case mix; identify high/low outliers for peer-review.",
-    pre:{E:2.0, I:2.6, T:3.5}},
+    target:"Ordering-intensity distribution per provider, normalized for case mix; identify high/low outliers for peer-review."},
 
   { id: 22, kind:"data", domain:"Equity",
     title:"Site-level variation with case-mix adjustment",
     cat:"Data Analysis — Equity",
     anchor:"Main ED already practices closer to evidence-based target on CMP (1.2%), D-Dimer (1.7%). But site differences may confound with case mix.",
-    target:"Site-by-site ordering rates adjusted for age, sex, ESI, acuity; identify site(s) leading vs. lagging on standardization.",
-    pre:{E:2.3, I:2.3, T:3.5}},
+    target:"Site-by-site ordering rates adjusted for age, sex, ESI, acuity; identify site(s) leading vs. lagging on standardization."},
 
   { id: 23, kind:"data", domain:"Safety",
     title:"30-day safety signal pre-registration",
     cat:"Data Analysis — Safety",
     anchor:"Prior to intervention launch, we should publicly pre-register the 30-day safety outcomes we'll monitor (MACE, readmission, mortality).",
-    target:"Pre-registered safety monitoring plan with thresholds for investigation, uploaded to task-force wiki before Round 1 of any intervention.",
-    pre:{E:2.0, I:1.6, T:4.5}},
+    target:"Pre-registered safety monitoring plan with thresholds for investigation, uploaded to task-force wiki before Round 1 of any intervention."},
 
   { id: 24, kind:"data", domain:"Evaluation",
     title:"Pre/post measurement design (ITS / SPC)",
     cat:"Data Analysis — Evaluation",
     anchor:"Intervention evaluation method has not been chosen. ITS or SPC controls for secular trend and random variation.",
-    target:"Formal ITS or SPC evaluation plan selected and powered before Round 1 launch; pre-specified primary and secondary endpoints.",
-    pre:{E:2.0, I:2.8, T:4.0}},
+    target:"Formal ITS or SPC evaluation plan selected and powered before Round 1 launch; pre-specified primary and secondary endpoints."},
 ];
 </script>
 
@@ -1277,10 +1216,6 @@ function renderVoteCards(round) {
           </div>
           <div class="vc-anchor"><strong>Data anchor.</strong> ${it.anchor}</div>
           <div class="vc-anchor"><strong>Target.</strong> ${it.target}</div>
-          <div class="vc-anchor" style="margin-top:6px;color:var(--grey);">Pre-vote estimate &middot;
-            <b>E ${it.pre.E.toFixed(1)}</b> &middot;
-            <b>I ${it.pre.I.toFixed(1)}</b> &middot;
-            <b>T ${it.pre.T.toFixed(1)}</b></div>
           ${prefNote}
 
           <div class="dim-block">
