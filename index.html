@@ -543,7 +543,7 @@
 
   <div class="card" style="background: var(--teal-tint); border-left: 4px solid var(--teal-text);">
     <h3 style="margin-bottom:4px;">Before you vote &mdash; review the data</h3>
-    <p class="small" style="margin:0;">Your Effort and Impact ratings are stronger if grounded in the baseline. <a id="dashboard-newtab-link" href="ED_ChestPain_Dashboard.html" target="_blank" rel="noopener">Open the Data Dashboard</a> or <a href="#" onclick="switchTab('context');return false;">read the Method &amp; Context</a> first.</p>
+    <p class="small" style="margin:0;">Your Effort and Impact ratings are stronger if grounded in the baseline. <a id="dashboard-newtab-link" href="ED_ChestPain_Dashboard.html" target="_blank" rel="noopener">Open the Data Dashboard</a> first.</p>
   </div>
 
   <div class="card" id="r1-identity-card">
@@ -639,7 +639,7 @@
   <div id="r2-unlocked" style="display:none;">
 
     <div class="banner">
-      <strong>Round 2 is open.</strong> You've seen the group's R1 placement and discussed high-spread items at Meeting 2. Revise your ratings &mdash; especially where you now see the issue differently. Your R1 ratings are pre-filled below; edit only what you'd like to change.
+      <strong>Round 2 is open.</strong> Same 24 initiatives. Re-rate based on what came up in Meeting 2.
     </div>
 
     <div class="card" id="r2-identity-card">
@@ -656,7 +656,7 @@
         <div class="progress-label">Initiatives rated: <strong id="r2-progress">0 / 24</strong></div>
         <div class="progress-bar"><div class="progress-fill" id="r2-progress-bar"></div></div>
       </div>
-      <p class="small muted" style="margin-top:10px;">Same 24 initiatives, same three-axis scoring. Your R1 ratings are pre-loaded &mdash; revise where deliberation changed your view.</p>
+      <p class="small muted" style="margin-top:10px;">Same 24 initiatives, same three-axis scoring. Re-rate based on what came up in Meeting 2.</p>
     </div>
 
     <div id="r2-cards"></div>
@@ -729,11 +729,11 @@
 
   <div class="card">
     <h2>Chest pain ordering dashboard</h2>
+    <p class="small muted" style="margin-bottom:10px;">
+      <a href="ED_ChestPain_Dashboard.html" target="_blank" rel="noopener" style="font-weight:700;">↗ Open dashboard in a new tab</a> for more room.
+    </p>
     <p class="small muted">The interactive dashboard built on the April 2026 baseline (1,514 orders ranked across first 3 ordering sessions per encounter, age &ge; 18, last 12 months, system-wide vs. Main ED). Use this while voting &mdash; especially for Round 1 of the data-analysis items (#14-24) where the current state <em>is</em> the argument.</p>
     <iframe class="dash-frame" src="ED_ChestPain_Dashboard.html" title="ED Chest Pain Dashboard"></iframe>
-    <p class="small muted" style="margin-top:10px;">
-      <a href="ED_ChestPain_Dashboard.html" target="_blank">Open dashboard in a new tab</a> for more room.
-    </p>
   </div>
 
 </section>
@@ -859,10 +859,9 @@
 
     <div class="card">
       <h2>Backup / restore</h2>
-      <p class="small muted">Export all aggregated submissions as JSON (keep a copy in case you clear browser storage). Restore by pasting the JSON back here.</p>
-      <button class="submit-btn secondary" onclick="exportAll()">Export all submissions (.json)</button>
-      <button class="submit-btn" style="margin-left:8px;" onclick="copyForClaude()" id="copy-for-claude-btn">📋 Copy for Claude → Drive</button>
-      <p class="small muted" style="margin-top:8px;" id="copy-for-claude-hint">Click above, then paste into your Claude chat — Claude will save the backup straight to your Google Drive.</p>
+      <p class="small muted">Export aggregated submissions as a readable text file, or export JSON to restore later. Google Drive backup fires automatically on each aggregation.</p>
+      <button class="submit-btn secondary" onclick="exportAllText()">Export all submissions (.txt)</button>
+      <button class="submit-btn secondary" style="margin-left:8px;" onclick="exportAll()">Export JSON (for restore)</button>
       <details style="margin-top:10px;">
         <summary class="small muted" style="cursor:pointer;">Restore from backup</summary>
         <textarea id="restore-paste" class="code-paste" style="margin-top:8px;" placeholder='{"r1":[...],"r2":[...]}'></textarea>
@@ -1245,7 +1244,7 @@ function renderVoteCards(round) {
       };
       const prefNote = (round === 2 && saved.E == null && saved.I == null && saved.T == null
                         && (pref.E != null || pref.I != null || pref.T != null))
-        ? `<div class="vc-pre">Your Round 1 rating is pre-filled below. Click any pill to confirm or change.</div>`
+        ? `<div class="vc-pre">Re-rate based on what came up in Meeting 2.</div>`
         : "";
       html += `
         <div class="vote-card kind-${it.kind}" data-id="${it.id}" data-round="${round}">
@@ -1615,38 +1614,47 @@ function clearSavedCodes(round) {
   renderSavedCodes(round);
 }
 
-function copyForClaude() {
-  const r1 = loadSubmissions(1);
-  const r2 = loadSubmissions(2);
-  if (!r1.length && !r2.length) {
-    alert("No submissions aggregated yet — nothing to back up.");
-    return;
+// ----------  SUBMISSION TEXT FORMATTER ----------
+// Renders a single decoded submission as a human-readable string suitable
+// for a Google Doc or a .txt download.
+function formatSubmissionText(sub, round) {
+  const lines = [];
+  lines.push("ED Chest Pain Delphi — Round " + round + " Submission");
+  lines.push("Panelist : " + (sub.n || "Anonymous"));
+  lines.push("Submitted: " + (sub.t ? new Date(sub.t).toLocaleString() : "Unknown"));
+  lines.push("Items rated: " + (sub.v ? sub.v.length : 0) + " of " + INITIATIVES.length);
+  lines.push("");
+  lines.push("──────────────────────────────────────────────────");
+  lines.push("RATINGS  (Effort · Impact · Interest  each 1–5)");
+  lines.push("──────────────────────────────────────────────────");
+  for (const it of INITIATIVES) {
+    const row = sub.v ? sub.v.find(r => r.i === it.id) : null;
+    if (!row) continue;
+    lines.push("");
+    lines.push(it.id + ". " + it.title);
+    lines.push("   Domain  : " + (it.domain || it.cat || ""));
+    lines.push("   Effort  : " + (row.E != null ? row.E : "—") +
+               "   Impact  : " + (row.I != null ? row.I : "—") +
+               "   Interest: " + (row.T != null ? row.T : "—"));
+    if (row.c) lines.push("   Comment : " + row.c);
   }
-  const payload = {
-    platform: "ED Chest Pain Delphi — Front-End Care Standardization",
-    exported: new Date().toISOString().slice(0, 10),
-    r1,
-    r2,
-  };
-  const msg = `Please save this Delphi submission backup to my Google Drive (in the Chest Pain Delphi folder):\n\n${JSON.stringify(payload, null, 2)}`;
-  navigator.clipboard.writeText(msg).then(() => {
-    const btn = document.getElementById("copy-for-claude-btn");
-    const hint = document.getElementById("copy-for-claude-hint");
-    btn.textContent = "✅ Copied! Now paste into Claude chat";
-    hint.innerHTML = '<strong style="color:var(--teal-text);">Paste into your Claude conversation — Claude will save it to Google Drive automatically.</strong>';
-    setTimeout(() => {
-      btn.textContent = "📋 Copy for Claude → Drive";
-      hint.innerHTML = "Click above, then paste into your Claude chat — Claude will save the backup straight to your Google Drive.";
-    }, 4000);
-  }).catch(() => alert("Clipboard access denied — please use the Export .json button instead."));
+  lines.push("");
+  return lines.join("\n");
 }
 
 // ----------  GOOGLE DRIVE AUTO-BACKUP ----------
 // Uses a hidden form POST to bypass Chrome's file:// cross-origin fetch block.
 // The form opens in a tiny hidden iframe so no visible navigation occurs.
+// Sends one formatted-text entry per submission so the Apps Script can
+// create a separate Google Doc per panelist.
 function autoSaveToDrive(round, submissions) {
   if (!CONFIG.DRIVE_WEBHOOK) return;
-  const payload = JSON.stringify({ round, submissions });
+  // Format each submission as readable text before sending.
+  const formatted = submissions.map(sub => ({
+    name: (sub.n || "Anonymous").trim(),
+    text: formatSubmissionText(sub, round)
+  }));
+  const payload = JSON.stringify({ round, submissions: formatted });
   const el = document.getElementById(`r${round}-drive-status`);
 
   // Create a one-time hidden iframe as the form target so no page navigation happens.
@@ -1688,37 +1696,66 @@ function autoSaveToDrive(round, submissions) {
   }, 3000);
 }
 
-function exportAll() {
-  const out = { r1: loadSubmissions(1), r2: loadSubmissions(2), exportedAt: new Date().toISOString() };
-  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+// Export all submissions as a human-readable .txt file.
+function exportAllText() {
+  const r1 = loadSubmissions(1);
+  const r2 = loadSubmissions(2);
+  if (!r1.length && !r2.length) {
+    alert("No submissions aggregated yet — nothing to export.");
+    return;
+  }
+  const sep = "══════════════════════════════════════════════════════════\n";
+  let text = "ED Chest Pain Delphi — Full Submission Export\n";
+  text += "Generated: " + new Date().toLocaleString() + "\n\n";
+  if (r1.length) {
+    text += sep + "ROUND 1 SUBMISSIONS (" + r1.length + " panelists)\n" + sep + "\n";
+    r1.forEach(sub => { text += formatSubmissionText(sub, 1) + "\n" + sep + "\n"; });
+  }
+  if (r2.length) {
+    text += sep + "ROUND 2 SUBMISSIONS (" + r2.length + " panelists)\n" + sep + "\n";
+    r2.forEach(sub => { text += formatSubmissionText(sub, 2) + "\n" + sep + "\n"; });
+  }
+  const blob = new Blob([text], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `chest-pain-delphi-submissions-${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `chest-pain-delphi-submissions-${new Date().toISOString().slice(0,10)}.txt`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
-// Automatic post-aggregation backup. Writes a round-specific JSON snapshot to the admin's Downloads folder.
-// Fires every time aggregateRound() completes with at least one submission — belt and suspenders for
-// the localStorage-only architecture. Admin can (and should) still manually Export all submissions too.
-function autoBackup(round, submissions) {
-  const now = new Date();
-  const stamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);   // e.g. 2026-04-21T14-32-07
-  const out = {
-    kind: "chest-pain-delphi-auto-backup",
-    round: round,
-    generatedAt: now.toISOString(),
-    count: submissions.length,
-    submissions: submissions,
-  };
+// Export JSON snapshot — used for restoring via the Restore from backup box.
+function exportAll() {
+  const out = { r1: loadSubmissions(1), r2: loadSubmissions(2), exportedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `chestpain-delphi-R${round}-autobackup-${stamp}.json`;
+  a.download = `chest-pain-delphi-restore-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Automatic post-aggregation backup — downloads a readable .txt snapshot to the
+// admin's Downloads folder after every aggregation as a local safety copy.
+function autoBackup(round, submissions) {
+  const now = new Date();
+  const stamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const sep = "══════════════════════════════════════════════════════════\n";
+  let text = "ED Chest Pain Delphi — Round " + round + " Auto-Backup\n";
+  text += "Generated: " + now.toLocaleString() + "\n";
+  text += "Total submissions: " + submissions.length + "\n\n";
+  text += sep;
+  submissions.forEach(sub => { text += formatSubmissionText(sub, round) + "\n" + sep + "\n"; });
+  const blob = new Blob([text], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `chestpain-delphi-R${round}-backup-${stamp}.txt`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
