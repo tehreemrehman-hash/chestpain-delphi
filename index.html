@@ -804,6 +804,12 @@
     </div>
 
     <div class="card">
+      <h2>Panelist comments — Round 1</h2>
+      <p class="small muted">All free-text comments from aggregated R1 submissions. Visible here regardless of lock state.</p>
+      <div id="admin-r1-comments"><p class="small muted">No submissions aggregated yet.</p></div>
+    </div>
+
+    <div class="card">
       <h2>Round 2 submissions</h2>
       <p class="small muted">Paste R2 submission codes here. Re-paste and re-aggregate any time members send updates.</p>
 
@@ -1638,7 +1644,7 @@ function autoSaveToDrive(round, submissions) {
   fetch(CONFIG.DRIVE_WEBHOOK, {
     method: "POST",
     body: payload,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain" },
   })
   .then(r => r.json())
   .then(data => {
@@ -1952,28 +1958,83 @@ function renderComments(divId, tallied) {
   const el = document.getElementById(divId);
   if (!el) return;
   if (!tallied) { el.innerHTML = ""; return; }
+
   const withComments = tallied.filter(t => t.comments && t.comments.length > 0)
     .sort((a, b) => a.id - b.id);
   if (withComments.length === 0) {
     el.innerHTML = `<p class="small muted" style="margin-top:8px;">No comments submitted yet.</p>`;
     return;
   }
-  let html = "";
-  for (const t of withComments) {
-    html += `<div style="margin-bottom:20px;">
-      <div style="font-weight:700;color:var(--navy);margin-bottom:8px;font-size:14px;">
-        #${t.id} &mdash; ${t.title}
-      </div>`;
-    for (const c of t.comments) {
-      const lines = c.text.replace(/</g, "&lt;").replace(/\n/g, "<br>");
-      html += `<div style="background:var(--cream);border-left:3px solid var(--teal);border-radius:4px;padding:10px 14px;margin-bottom:8px;font-size:13px;line-height:1.55;">
-        <span style="font-weight:700;color:var(--teal-text);display:block;margin-bottom:4px;">${c.name}</span>
-        ${lines}
-      </div>`;
+
+  // Collect all unique panelist names across all comments
+  const allPanelists = [...new Set(
+    withComments.flatMap(t => t.comments.map(c => c.name))
+  )].sort();
+
+  // Build filter bar
+  const initiativeOpts = withComments.map(t =>
+    `<option value="${t.id}">#${t.id} — ${t.title.replace(/"/g,"&quot;")}</option>`
+  ).join("");
+  const panelistOpts = allPanelists.map(n =>
+    `<option value="${n}">${n}</option>`
+  ).join("");
+
+  const filterBarId = divId + "-filters";
+  const listId      = divId + "-list";
+
+  el.innerHTML = `
+    <div id="${filterBarId}" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;align-items:center;">
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <label style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;">Initiative</label>
+        <select id="${filterBarId}-init" style="font-size:13px;padding:5px 8px;border:1px solid var(--grey);border-radius:6px;background:#fff;color:var(--navy);min-width:220px;">
+          <option value="">All initiatives</option>
+          ${initiativeOpts}
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <label style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;">Panelist</label>
+        <select id="${filterBarId}-pan" style="font-size:13px;padding:5px 8px;border:1px solid var(--grey);border-radius:6px;background:#fff;color:var(--navy);min-width:160px;">
+          <option value="">All panelists</option>
+          ${panelistOpts}
+        </select>
+      </div>
+      <div id="${filterBarId}-count" style="font-size:12px;color:var(--grey-dark);align-self:flex-end;padding-bottom:6px;"></div>
+    </div>
+    <div id="${listId}"></div>`;
+
+  function applyCommentFilters() {
+    const selInit = document.getElementById(filterBarId + "-init").value;
+    const selPan  = document.getElementById(filterBarId + "-pan").value;
+    const listEl  = document.getElementById(listId);
+    const countEl = document.getElementById(filterBarId + "-count");
+    let html = "";
+    let total = 0;
+    for (const t of withComments) {
+      if (selInit && String(t.id) !== selInit) continue;
+      const filtered = selPan ? t.comments.filter(c => c.name === selPan) : t.comments;
+      if (!filtered.length) continue;
+      total += filtered.length;
+      html += `<div style="margin-bottom:20px;">
+        <div style="font-weight:700;color:var(--navy);margin-bottom:8px;font-size:14px;">
+          #${t.id} &mdash; ${t.title}
+        </div>`;
+      for (const c of filtered) {
+        const lines = c.text.replace(/</g, "&lt;").replace(/\n/g, "<br>");
+        html += `<div style="background:var(--cream);border-left:3px solid var(--teal);border-radius:4px;padding:10px 14px;margin-bottom:8px;font-size:13px;line-height:1.55;">
+          <span style="font-weight:700;color:var(--teal-text);display:block;margin-bottom:4px;">${c.name}</span>
+          ${lines}
+        </div>`;
+      }
+      html += `</div>`;
     }
-    html += `</div>`;
+    if (!html) html = `<p class="small muted">No comments match the selected filters.</p>`;
+    listEl.innerHTML = html;
+    countEl.textContent = `${total} comment${total !== 1 ? "s" : ""}`;
   }
-  el.innerHTML = html;
+
+  document.getElementById(filterBarId + "-init").addEventListener("change", applyCommentFilters);
+  document.getElementById(filterBarId + "-pan").addEventListener("change", applyCommentFilters);
+  applyCommentFilters();
 }
 
 let R1_TALLY = null, R2_TALLY = null;
@@ -1984,7 +2045,7 @@ function rerenderResults(round) {
   if (round === 1) { R1_TALLY = t; } else { R2_TALLY = t; }
   renderScatter(round === 1 ? "r1-scatter" : "r2-scatter", t);
   renderDisagreeTable(round === 1 ? "r1-disagree" : "r12-delta", t);
-  if (round === 1) renderComments("r1-comments", t);
+  if (round === 1) { renderComments("r1-comments", t); renderComments("admin-r1-comments", t); }
   if (round === 2) renderQuadrantTable(t);
 
   const el = document.getElementById(round === 1 ? "r1-stats" : "r2-stats");
