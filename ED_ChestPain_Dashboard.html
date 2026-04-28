@@ -204,24 +204,29 @@ function renderKPIs(){
 
 function renderChart1(){
   const d = filteredData();
-  const metric = currentMetric();
   const edMetric = state.rank === 'total' ? 'TotalED' : 'Main ED Rank ' + state.rank;
   const sysMetric = state.rank === 'total' ? 'TotalSys' : 'System Rank ' + state.rank;
-  const sorted = [...d].sort((a,b)=>b[sysMetric]-a[sysMetric]).slice(0, state.topN);
+  // Sort by whichever scope is selected
+  const sortMetric = state.scope === 'ed' ? edMetric : sysMetric;
+  const sorted = [...d].sort((a,b)=>b[sortMetric]-a[sortMetric]).slice(0, state.topN);
   const rev = sorted.slice().reverse();
 
   const titleRank = state.rank==='total'?'All Ranks (1+2+3)':'Rank '+state.rank;
-  document.getElementById('chart1-title').textContent = `Top ${state.topN} Orders — ${titleRank}`;
+  const scopeLabel = state.scope === 'ed' ? 'Main ED' : 'System';
+  document.getElementById('chart1-title').textContent = `Top ${state.topN} Orders — ${titleRank} (sorted by ${scopeLabel})`;
 
-  const colorFor = t => t==='Diagnostic' ? COLORS.navy : COLORS.coral;
-  const colorLight = t => t==='Diagnostic' ? COLORS.navyLight : COLORS.coralLight;
+  const dark  = t => t==='Diagnostic' ? COLORS.navy : COLORS.coral;
+  const light = t => t==='Diagnostic' ? COLORS.navyLight : COLORS.coralLight;
+  // Highlighted (darker) bar = selected scope
+  const sysColor = t => state.scope === 'ed' ? light(t) : dark(t);
+  const edColor  = t => state.scope === 'ed' ? dark(t)  : light(t);
 
   const traces = [
     {
       x: rev.map(r=>r[sysMetric]),
       y: rev.map(r=>r.ORDER_NAME.length>55?r.ORDER_NAME.slice(0,52)+'…':r.ORDER_NAME),
       type:'bar', orientation:'h', name:'System',
-      marker:{color:rev.map(r=>colorFor(r['Order Type']))},
+      marker:{color:rev.map(r=>sysColor(r['Order Type']))},
       text:rev.map(r=>fmt(r[sysMetric])), textposition:'outside',
       hovertemplate:'<b>%{y}</b><br>System: %{x:,}<extra></extra>'
     },
@@ -229,7 +234,7 @@ function renderChart1(){
       x: rev.map(r=>r[edMetric]),
       y: rev.map(r=>r.ORDER_NAME.length>55?r.ORDER_NAME.slice(0,52)+'…':r.ORDER_NAME),
       type:'bar', orientation:'h', name:'Main ED',
-      marker:{color:rev.map(r=>colorLight(r['Order Type']))},
+      marker:{color:rev.map(r=>edColor(r['Order Type']))},
       text:rev.map(r=>fmt(r[edMetric])), textposition:'outside',
       hovertemplate:'<b>%{y}</b><br>Main ED: %{x:,}<extra></extra>'
     }
@@ -247,11 +252,14 @@ function renderChart1(){
 
 function renderChart2(){
   const d = filteredData();
-  const sorted = [...d].sort((a,b)=>b.TotalSys-a.TotalSys).slice(0, Math.min(8, state.topN));
+  const isED = state.scope === 'ed';
+  const totalKey = isED ? 'TotalED' : 'TotalSys';
+  const rankPrefix = isED ? 'Main ED Rank ' : 'System Rank ';
+  const sorted = [...d].sort((a,b)=>b[totalKey]-a[totalKey]).slice(0, Math.min(8, state.topN));
   const palette = ['#1f3a5f','#2d8b8b','#e07856','#d4a547','#6b83a6','#a83d1d','#4a7c7c','#8b6914'];
   const traces = sorted.map((r,i)=>({
     x:['Rank 1','Rank 2','Rank 3'],
-    y:[r['System Rank 1'], r['System Rank 2'], r['System Rank 3']],
+    y:[r[rankPrefix+'1'], r[rankPrefix+'2'], r[rankPrefix+'3']],
     type:'scatter', mode:'lines+markers',
     name: r.ORDER_NAME.length>30?r.ORDER_NAME.slice(0,27)+'…':r.ORDER_NAME,
     line:{color:palette[i%palette.length], width:2.2},
@@ -260,7 +268,7 @@ function renderChart2(){
   Plotly.react('chart2', traces, {
     margin:{l:55,r:10,t:10,b:70},
     xaxis:{gridcolor:'#edf0f5'},
-    yaxis:{title:'System Count', gridcolor:'#edf0f5'},
+    yaxis:{title:(isED?'Main ED':'System')+' Count', gridcolor:'#edf0f5'},
     plot_bgcolor:'#fff', paper_bgcolor:'#fff',
     legend:{orientation:'h', y:-0.15, font:{size:10}},
     font:{family:'-apple-system, Segoe UI, Roboto, sans-serif', color:'#334155', size:11}

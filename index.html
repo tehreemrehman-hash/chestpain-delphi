@@ -543,7 +543,7 @@
 
   <div class="card" style="background: var(--teal-tint); border-left: 4px solid var(--teal-text);">
     <h3 style="margin-bottom:4px;">Before you vote &mdash; review the data</h3>
-    <p class="small" style="margin:0;">Your Effort and Impact ratings are stronger if grounded in the baseline. <a id="dashboard-newtab-link" href="#" target="_blank" rel="noopener">Open the Data Dashboard</a> or <a href="#" onclick="switchTab('context');return false;">read the Method &amp; Context</a> first.</p>
+    <p class="small" style="margin:0;">Your Effort and Impact ratings are stronger if grounded in the baseline. <a id="dashboard-newtab-link" href="ED_ChestPain_Dashboard.html" target="_blank" rel="noopener">Open the Data Dashboard</a> or <a href="#" onclick="switchTab('context');return false;">read the Method &amp; Context</a> first.</p>
   </div>
 
   <div class="card" id="r1-identity-card">
@@ -1642,35 +1642,50 @@ function copyForClaude() {
 }
 
 // ----------  GOOGLE DRIVE AUTO-BACKUP ----------
+// Uses a hidden form POST to bypass Chrome's file:// cross-origin fetch block.
+// The form opens in a tiny hidden iframe so no visible navigation occurs.
 function autoSaveToDrive(round, submissions) {
-  if (!CONFIG.DRIVE_WEBHOOK) return; // not configured
+  if (!CONFIG.DRIVE_WEBHOOK) return;
   const payload = JSON.stringify({ round, submissions });
   const el = document.getElementById(`r${round}-drive-status`);
+
+  // Create a one-time hidden iframe as the form target so no page navigation happens.
+  const iframeName = `drive-target-${Date.now()}`;
+  const iframe = document.createElement("iframe");
+  iframe.name = iframeName;
+  iframe.style.cssText = "display:none;width:0;height:0;border:none;";
+  document.body.appendChild(iframe);
+
+  // Build a hidden form that POSTs the JSON payload to the Apps Script webhook.
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = CONFIG.DRIVE_WEBHOOK;
+  form.target = iframeName;
+  form.style.display = "none";
+
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "payload";
+  input.value = payload;
+  form.appendChild(input);
+  document.body.appendChild(form);
+
   if (el) {
     el.innerHTML = `☁️ Sending to Google Drive…`;
     el.style.color = "var(--grey-dark)";
   }
-  // mode: 'no-cors' allows the request to cross origins from a local file.
-  // The response is opaque so we can't read it, but the Apps Script receives
-  // and processes the POST. We show "Sent" on resolve, error on network failure.
-  fetch(CONFIG.DRIVE_WEBHOOK, {
-    method: "POST",
-    body: payload,
-    headers: { "Content-Type": "text/plain" },
-    mode: "no-cors",
-  })
-  .then(() => {
+
+  form.submit();
+
+  // Clean up after a short delay and update status.
+  setTimeout(() => {
+    try { document.body.removeChild(form); } catch(e) {}
+    try { document.body.removeChild(iframe); } catch(e) {}
     if (el) {
-      el.innerHTML = `☁️ <strong>Sent to Google Drive</strong>`;
+      el.innerHTML = `☁️ <strong>Sent to Google Drive</strong> — check your Drive folder to confirm.`;
       el.style.color = "var(--teal-text)";
     }
-  })
-  .catch(err => {
-    if (el) {
-      el.innerHTML = `⚠️ Drive send failed: ${err.message}`;
-      el.style.color = "var(--coral)";
-    }
-  });
+  }, 3000);
 }
 
 function exportAll() {
@@ -2110,9 +2125,6 @@ function maybeRenderResults(round) {
 // ----------  INIT ----------
 window.addEventListener("DOMContentLoaded", () => {
   checkGate();
-  // Set dashboard new-tab link to open directly on dashboard tab
-  const dashLink = document.getElementById('dashboard-newtab-link');
-  if (dashLink) dashLink.href = window.location.href.split('?')[0] + '?tab=dashboard';
   renderVoteCards(1);
   renderVoteCards(2);
   loadIdentity(1);
