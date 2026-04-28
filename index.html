@@ -543,7 +543,7 @@
 
   <div class="card" style="background: var(--teal-tint); border-left: 4px solid var(--teal-text);">
     <h3 style="margin-bottom:4px;">Before you vote &mdash; review the data</h3>
-    <p class="small" style="margin:0;">Your Effort and Impact ratings are stronger if grounded in the baseline. <a href="#" onclick="window.open(window.location.href.split('?')[0]+'?tab=dashboard','_blank','noopener');return false;">Open the Data Dashboard</a> or <a href="#" onclick="switchTab('context');return false;">read the Method &amp; Context</a> first.</p>
+    <p class="small" style="margin:0;">Your Effort and Impact ratings are stronger if grounded in the baseline. <a id="dashboard-newtab-link" href="#" target="_blank" rel="noopener">Open the Data Dashboard</a> or <a href="#" onclick="switchTab('context');return false;">read the Method &amp; Context</a> first.</p>
   </div>
 
   <div class="card" id="r1-identity-card">
@@ -2110,6 +2110,9 @@ function maybeRenderResults(round) {
 // ----------  INIT ----------
 window.addEventListener("DOMContentLoaded", () => {
   checkGate();
+  // Set dashboard new-tab link to open directly on dashboard tab
+  const dashLink = document.getElementById('dashboard-newtab-link');
+  if (dashLink) dashLink.href = window.location.href.split('?')[0] + '?tab=dashboard';
   renderVoteCards(1);
   renderVoteCards(2);
   loadIdentity(1);
