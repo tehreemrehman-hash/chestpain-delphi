@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chest Pain Order Set Prioritization — Front-End Care Standardization Task Force</title>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <style>
   /* ---------- CSS VARIABLES & BRAND ---------- */
   :root {
@@ -617,6 +618,12 @@
       <table class="disagree-table" id="r1-disagree"></table>
     </div>
 
+    <div class="card">
+      <h2>Panelist comments</h2>
+      <p class="small muted">All free-text comments submitted in Round 1, grouped by initiative. Only initiatives with at least one comment are shown.</p>
+      <div id="r1-comments"></div>
+    </div>
+
   </div>
 
 </section>
@@ -785,7 +792,7 @@
       <h2>Round 1 submissions</h2>
       <p class="small muted">Paste each member's submission code on its own line (one code per line). Codes come from the <em>Email to Tehreem</em> or <em>Copy to clipboard</em> buttons on the R1 Rating tab. If a member submits twice, the platform keeps the most recent one (by timestamp).</p>
 
-      <textarea id="r1-paste" class="code-paste" placeholder="Paste one code per line, e.g.:&#10;CPD1.v1.eyJuIjoiSWxhbmEgS2xlaW4iLCJyIjoxLCJ0Ijox...&#10;CPD1.v1.eyJuIjoiQWRhbSIsInIiOjEsInQiOjE3NzY4Mj..."></textarea>
+      <textarea id="r1-paste" class="code-paste" placeholder="Paste one code per line, e.g.:&#10;CPD1.v2.BYUwNmD2AEDGCWBTALgYwK4Ds...&#10;CPD1.v2.BYSwNgLAHAbA5gSwE4FMD...&#10;(v1 legacy codes also accepted)"></textarea>
 
       <div style="margin-top:10px;">
         <button class="submit-btn" onclick="aggregateRound(1)">Aggregate R1 results</button>
@@ -793,6 +800,7 @@
       </div>
 
       <div id="r1-agg-status" class="small muted" style="margin-top:12px;"></div>
+      <div id="r1-drive-status" class="small" style="margin-top:6px;"></div>
     </div>
 
     <div class="card">
@@ -807,6 +815,7 @@
       </div>
 
       <div id="r2-agg-status" class="small muted" style="margin-top:12px;"></div>
+      <div id="r2-drive-status" class="small" style="margin-top:6px;"></div>
     </div>
 
     <div class="card">
@@ -826,9 +835,28 @@
     </div>
 
     <div class="card">
+      <h2>Saved submission codes</h2>
+      <p class="small muted">Every code successfully aggregated is saved here automatically. Copy these to keep a permanent record — they can be re-pasted into the aggregate box at any time.</p>
+      <div style="margin-bottom:16px;">
+        <div style="font-weight:700;color:var(--navy);font-size:13px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Round 1 codes</div>
+        <textarea id="r1-saved-codes" class="code-output" readonly onclick="this.select()" style="min-height:80px;" placeholder="No R1 codes saved yet."></textarea>
+        <button class="submit-btn secondary" style="margin-top:6px;" onclick="copySavedCodes(1)">Copy R1 codes</button>
+        <button class="submit-btn secondary" style="margin-top:6px;margin-left:6px;" onclick="clearSavedCodes(1)">Clear saved R1 codes</button>
+      </div>
+      <div>
+        <div style="font-weight:700;color:var(--navy);font-size:13px;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Round 2 codes</div>
+        <textarea id="r2-saved-codes" class="code-output" readonly onclick="this.select()" style="min-height:80px;" placeholder="No R2 codes saved yet."></textarea>
+        <button class="submit-btn secondary" style="margin-top:6px;" onclick="copySavedCodes(2)">Copy R2 codes</button>
+        <button class="submit-btn secondary" style="margin-top:6px;margin-left:6px;" onclick="clearSavedCodes(2)">Clear saved R2 codes</button>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Backup / restore</h2>
       <p class="small muted">Export all aggregated submissions as JSON (keep a copy in case you clear browser storage). Restore by pasting the JSON back here.</p>
       <button class="submit-btn secondary" onclick="exportAll()">Export all submissions (.json)</button>
+      <button class="submit-btn" style="margin-left:8px;" onclick="copyForClaude()" id="copy-for-claude-btn">📋 Copy for Claude → Drive</button>
+      <p class="small muted" style="margin-top:8px;" id="copy-for-claude-hint">Click above, then paste into your Claude chat — Claude will save the backup straight to your Google Drive.</p>
       <details style="margin-top:10px;">
         <summary class="small muted" style="cursor:pointer;">Restore from backup</summary>
         <textarea id="restore-paste" class="code-paste" style="margin-top:8px;" placeholder='{"r1":[...],"r2":[...]}'></textarea>
@@ -867,6 +895,10 @@ const CONFIG = {
 
   // Where submission codes get emailed (opens the member's default mail client pre-filled)
   ADMIN_EMAIL:    "tehreem.rehman@mountsinai.org",
+
+  // Google Drive auto-backup webhook (Apps Script web app URL).
+  // Paste your deployed web app URL here — leave blank to disable.
+  DRIVE_WEBHOOK:  "https://script.google.com/macros/s/AKfycbwBw_CqIDKfpYmM185lVJbFVjc9MQvPbqnB33cnyWg3N5Ea9oWNWkDDvmOTPRsIVMOkRQ/exec",
 
   // Convergence threshold — group SD at or below this is "converged" on that dimension
   SD_CONVERGE: 0.75,
@@ -1280,16 +1312,20 @@ function updateProgress(round) {
 }
 
 // ----------  SUBMISSION CODES ----------
+// v2: LZ-String compressed (much shorter for comment-heavy submissions)
+// v1: legacy plain base64 — kept for backward compat decoding
 function encodeSubmission(payload) {
   const json = JSON.stringify(payload);
-  const utf8 = new TextEncoder().encode(json);
-  let binary = "";
-  for (const byte of utf8) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return LZString.compressToBase64(json)
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
-function decodeSubmission(code) {
-  let b64 = code.replace(/-/g, "+").replace(/_/g, "/");
+function decodeSubmission(encoded, version) {
+  let b64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
   while (b64.length % 4) b64 += "=";
+  if (version === "v2") {
+    return JSON.parse(LZString.decompressFromBase64(b64));
+  }
+  // v1 fallback: plain UTF-8 base64
   const bytes = Uint8Array.from(atob(b64), ch => ch.charCodeAt(0));
   return JSON.parse(new TextDecoder().decode(bytes));
 }
@@ -1326,7 +1362,7 @@ function generateSubmissionCode(round) {
     alert("No ratings yet — nothing to submit.");
     return;
   }
-  const code = `CPD${round}.v1.${encodeSubmission(sub)}`;
+  const code = `CPD${round}.v2.${encodeSubmission(sub)}`;
   const wrap = document.getElementById(`r${round}-code-output`);
   const ta   = document.getElementById(`r${round}-code-text`);
   if (ta) ta.value = code;
@@ -1428,6 +1464,8 @@ function submitAdmin(e) {
     applyLockState();
     rerenderResults(1);
     rerenderResults(2);
+    renderSavedCodes(1);
+    renderSavedCodes(2);
   } else {
     document.getElementById("admin-err").textContent = "Incorrect password.";
   }
@@ -1455,20 +1493,22 @@ function aggregateRound(round) {
   const ta = document.getElementById(`r${round}-paste`);
   if (!ta) return;
   const lines = ta.value.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
-  const prefix = `CPD${round}.v1.`;
   const errors = [];
   const added = [];
   for (const line of lines) {
     // Extract the first CPD code token from the line (members may paste full emails)
-    const m = line.match(/CPD[12]\.v1\.[A-Za-z0-9_\-]+/);
+    // Matches both v1 (legacy) and v2 (compressed) codes
+    const m = line.match(/CPD[12]\.(v[12])\.[A-Za-z0-9_\-]+/);
     if (!m) { errors.push(`Could not find a CPD code on line: ${truncate(line, 80)}`); continue; }
     const code = m[0];
-    if (!code.startsWith(prefix)) {
+    const version = m[1]; // 'v1' or 'v2'
+    const prefix = `CPD${round}.${version}.`;
+    if (!code.startsWith(`CPD${round}.`)) {
       errors.push(`Code is for Round ${code[3]}, not Round ${round}: ${truncate(code, 60)}`);
       continue;
     }
     let payload;
-    try { payload = decodeSubmission(code.slice(prefix.length)); }
+    try { payload = decodeSubmission(code.slice(prefix.length), version); }
     catch (e) { errors.push(`Could not decode: ${truncate(code, 60)}`); continue; }
     if (!payload || payload.r !== round || !Array.isArray(payload.v)) {
       errors.push(`Malformed submission: ${truncate(code, 60)}`);
@@ -1493,6 +1533,7 @@ function aggregateRound(round) {
   if (final.length > 0) {
     try { autoBackup(round, final); }
     catch (e) { console.warn("Auto-backup failed (non-fatal):", e); }
+    autoSaveToDrive(round, final);
   }
 
   const status = document.getElementById(`r${round}-agg-status`);
@@ -1505,6 +1546,11 @@ function aggregateRound(round) {
   }
   // If the round-results tab is unlocked, re-render immediately
   rerenderResults(round);
+  // Save raw codes before clearing the paste area
+  const successCodes = lines
+    .map(l => { const m = l.match(/CPD[12]\.v[12]\.[A-Za-z0-9_\-]+/); return m ? m[0] : null; })
+    .filter(Boolean);
+  if (successCodes.length) appendSavedCodes(round, successCodes);
   // Clear the paste area so re-pasting is easy
   if (!errors.length) ta.value = "";
 }
@@ -1515,6 +1561,105 @@ function clearRound(round) {
   const status = document.getElementById(`r${round}-agg-status`);
   if (status) status.innerHTML = `<span class="muted">Cleared.</span>`;
   rerenderResults(round);
+}
+
+// ----------  RAW CODE PERSISTENCE ----------
+function savedCodesKey(round) { return `cp-delphi-r${round}-raw-codes`; }
+
+function loadSavedCodes(round) {
+  try { return JSON.parse(localStorage.getItem(savedCodesKey(round)) || "[]"); }
+  catch(e) { return []; }
+}
+function saveCodesToStorage(round, codesArray) {
+  localStorage.setItem(savedCodesKey(round), JSON.stringify(codesArray));
+}
+function appendSavedCodes(round, newCodes) {
+  const existing = loadSavedCodes(round);
+  // Dedup by exact code string
+  const set = new Set(existing);
+  for (const c of newCodes) set.add(c);
+  const merged = Array.from(set);
+  saveCodesToStorage(round, merged);
+  renderSavedCodes(round);
+}
+function renderSavedCodes(round) {
+  const ta = document.getElementById(`r${round}-saved-codes`);
+  if (!ta) return;
+  const codes = loadSavedCodes(round);
+  ta.value = codes.join("\n");
+  ta.placeholder = codes.length ? "" : "No R" + round + " codes saved yet.";
+}
+function copySavedCodes(round) {
+  const ta = document.getElementById(`r${round}-saved-codes`);
+  if (!ta || !ta.value) return;
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = "Copied!";
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+function clearSavedCodes(round) {
+  if (!confirm(`Clear saved Round ${round} raw codes? This only removes them from this view — aggregated results are unaffected.`)) return;
+  saveCodesToStorage(round, []);
+  renderSavedCodes(round);
+}
+
+function copyForClaude() {
+  const r1 = loadSubmissions(1);
+  const r2 = loadSubmissions(2);
+  if (!r1.length && !r2.length) {
+    alert("No submissions aggregated yet — nothing to back up.");
+    return;
+  }
+  const payload = {
+    platform: "ED Chest Pain Delphi — Front-End Care Standardization",
+    exported: new Date().toISOString().slice(0, 10),
+    r1,
+    r2,
+  };
+  const msg = `Please save this Delphi submission backup to my Google Drive (in the Chest Pain Delphi folder):\n\n${JSON.stringify(payload, null, 2)}`;
+  navigator.clipboard.writeText(msg).then(() => {
+    const btn = document.getElementById("copy-for-claude-btn");
+    const hint = document.getElementById("copy-for-claude-hint");
+    btn.textContent = "✅ Copied! Now paste into Claude chat";
+    hint.innerHTML = '<strong style="color:var(--teal-text);">Paste into your Claude conversation — Claude will save it to Google Drive automatically.</strong>';
+    setTimeout(() => {
+      btn.textContent = "📋 Copy for Claude → Drive";
+      hint.innerHTML = "Click above, then paste into your Claude chat — Claude will save the backup straight to your Google Drive.";
+    }, 4000);
+  }).catch(() => alert("Clipboard access denied — please use the Export .json button instead."));
+}
+
+// ----------  GOOGLE DRIVE AUTO-BACKUP ----------
+function autoSaveToDrive(round, submissions) {
+  if (!CONFIG.DRIVE_WEBHOOK) return; // not configured
+  const payload = JSON.stringify({ round, submissions });
+  fetch(CONFIG.DRIVE_WEBHOOK, {
+    method: "POST",
+    body: payload,
+    headers: { "Content-Type": "application/json" },
+  })
+  .then(r => r.json())
+  .then(data => {
+    const el = document.getElementById(`r${round}-drive-status`);
+    if (el) {
+      if (data.ok) {
+        el.innerHTML = `☁️ <strong>Saved to Google Drive</strong> — "${data.title}"`;
+        el.style.color = "var(--teal-text)";
+      } else {
+        el.innerHTML = `⚠️ Drive save failed: ${data.error}`;
+        el.style.color = "var(--coral)";
+      }
+    }
+  })
+  .catch(err => {
+    const el = document.getElementById(`r${round}-drive-status`);
+    if (el) {
+      el.innerHTML = `⚠️ Drive save failed: ${err.message}`;
+      el.style.color = "var(--coral)";
+    }
+  });
 }
 
 function exportAll() {
@@ -1668,13 +1813,19 @@ function tallyFromSubmissions(subs) {
     const E = rs.map(r => r.E);
     const I = rs.map(r => r.I);
     const T = rs.map(r => r.T);
+    // Collect comment texts with submitter names
+    const comments = subs
+      .map(s => ({ name: (s.n || "Anonymous").trim(), row: s.v.find(r => r.i === it.id) }))
+      .filter(({ row }) => row && (row.c || "").trim())
+      .map(({ name, row }) => ({ name, text: row.c.trim() }));
     return {
       ...it,
       n: rs.length,
       mE: rs.length ? mean(E) : null, sE: rs.length ? sd(E) : 0,
       mI: rs.length ? mean(I) : null, sI: rs.length ? sd(I) : 0,
       mT: rs.length ? mean(T) : null, sT: rs.length ? sd(T) : 0,
-      commentCount: subs.reduce((acc, s) => acc + (s.v.find(r => r.i === it.id && (r.c || "").trim()) ? 1 : 0), 0),
+      commentCount: comments.length,
+      comments,
       responses: subs.length,
     };
   });
@@ -1797,6 +1948,34 @@ function renderDisagreeTable(tableId, tallied) {
   document.getElementById(tableId).innerHTML = html;
 }
 
+function renderComments(divId, tallied) {
+  const el = document.getElementById(divId);
+  if (!el) return;
+  if (!tallied) { el.innerHTML = ""; return; }
+  const withComments = tallied.filter(t => t.comments && t.comments.length > 0)
+    .sort((a, b) => a.id - b.id);
+  if (withComments.length === 0) {
+    el.innerHTML = `<p class="small muted" style="margin-top:8px;">No comments submitted yet.</p>`;
+    return;
+  }
+  let html = "";
+  for (const t of withComments) {
+    html += `<div style="margin-bottom:20px;">
+      <div style="font-weight:700;color:var(--navy);margin-bottom:8px;font-size:14px;">
+        #${t.id} &mdash; ${t.title}
+      </div>`;
+    for (const c of t.comments) {
+      const lines = c.text.replace(/</g, "&lt;").replace(/\n/g, "<br>");
+      html += `<div style="background:var(--cream);border-left:3px solid var(--teal);border-radius:4px;padding:10px 14px;margin-bottom:8px;font-size:13px;line-height:1.55;">
+        <span style="font-weight:700;color:var(--teal-text);display:block;margin-bottom:4px;">${c.name}</span>
+        ${lines}
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+}
+
 let R1_TALLY = null, R2_TALLY = null;
 
 function rerenderResults(round) {
@@ -1805,6 +1984,7 @@ function rerenderResults(round) {
   if (round === 1) { R1_TALLY = t; } else { R2_TALLY = t; }
   renderScatter(round === 1 ? "r1-scatter" : "r2-scatter", t);
   renderDisagreeTable(round === 1 ? "r1-disagree" : "r12-delta", t);
+  if (round === 1) renderComments("r1-comments", t);
   if (round === 2) renderQuadrantTable(t);
 
   const el = document.getElementById(round === 1 ? "r1-stats" : "r2-stats");
