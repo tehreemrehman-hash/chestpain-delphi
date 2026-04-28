@@ -543,7 +543,7 @@
 
   <div class="card" style="background: var(--teal-tint); border-left: 4px solid var(--teal-text);">
     <h3 style="margin-bottom:4px;">Before you vote &mdash; review the data</h3>
-    <p class="small" style="margin:0;">Your Effort and Impact ratings are stronger if grounded in the baseline. <a href="#" onclick="switchTab('dashboard');return false;">Open the Data Dashboard</a> or <a href="#" onclick="switchTab('context');return false;">read the Method &amp; Context</a> first.</p>
+    <p class="small" style="margin:0;">Your Effort and Impact ratings are stronger if grounded in the baseline. <a href="#" onclick="window.open(window.location.href.split('?')[0]+'?tab=dashboard','_blank','noopener');return false;">Open the Data Dashboard</a> or <a href="#" onclick="switchTab('context');return false;">read the Method &amp; Context</a> first.</p>
   </div>
 
   <div class="card" id="r1-identity-card">
@@ -1074,16 +1074,20 @@ function submitGate(e) {
   e.preventDefault();
   const code = document.getElementById("gate-code").value.trim();
   if (code === CONFIG.ACCESS_CODE) {
-    sessionStorage.setItem("cp-delphi-access", "ok");
+    localStorage.setItem("cp-delphi-access", "ok");
     document.getElementById("gate").style.display = "none";
+    const p = new URLSearchParams(window.location.search).get("tab");
+    if (p) switchTab(p);
     return false;
   }
   document.getElementById("gate-error").textContent = "Incorrect code. Try again or contact a task force lead.";
   return false;
 }
 function checkGate() {
-  if (sessionStorage.getItem("cp-delphi-access") === "ok") {
+  if (localStorage.getItem("cp-delphi-access") === "ok") {
     document.getElementById("gate").style.display = "none";
+    const p = new URLSearchParams(window.location.search).get("tab");
+    if (p) switchTab(p);
   }
 }
 
@@ -1641,28 +1645,29 @@ function copyForClaude() {
 function autoSaveToDrive(round, submissions) {
   if (!CONFIG.DRIVE_WEBHOOK) return; // not configured
   const payload = JSON.stringify({ round, submissions });
+  const el = document.getElementById(`r${round}-drive-status`);
+  if (el) {
+    el.innerHTML = `☁️ Sending to Google Drive…`;
+    el.style.color = "var(--grey-dark)";
+  }
+  // mode: 'no-cors' allows the request to cross origins from a local file.
+  // The response is opaque so we can't read it, but the Apps Script receives
+  // and processes the POST. We show "Sent" on resolve, error on network failure.
   fetch(CONFIG.DRIVE_WEBHOOK, {
     method: "POST",
     body: payload,
     headers: { "Content-Type": "text/plain" },
+    mode: "no-cors",
   })
-  .then(r => r.json())
-  .then(data => {
-    const el = document.getElementById(`r${round}-drive-status`);
+  .then(() => {
     if (el) {
-      if (data.ok) {
-        el.innerHTML = `☁️ <strong>Saved to Google Drive</strong> — "${data.title}"`;
-        el.style.color = "var(--teal-text)";
-      } else {
-        el.innerHTML = `⚠️ Drive save failed: ${data.error}`;
-        el.style.color = "var(--coral)";
-      }
+      el.innerHTML = `☁️ <strong>Sent to Google Drive</strong>`;
+      el.style.color = "var(--teal-text)";
     }
   })
   .catch(err => {
-    const el = document.getElementById(`r${round}-drive-status`);
     if (el) {
-      el.innerHTML = `⚠️ Drive save failed: ${err.message}`;
+      el.innerHTML = `⚠️ Drive send failed: ${err.message}`;
       el.style.color = "var(--coral)";
     }
   });
@@ -1906,8 +1911,8 @@ function renderScatter(divId, tallied) {
   ];
 
   const layout = {
-    xaxis: { title: "Group mean Effort &rarr;", range: [0.6, 5.4], gridcolor: "#E8E4DB", dtick: 1, zeroline: false },
-    yaxis: { title: "Group mean Impact &rarr;", range: [0.6, 5.4], gridcolor: "#E8E4DB", dtick: 1, zeroline: false },
+    xaxis: { title: "Group mean Effort →", range: [0.6, 5.4], gridcolor: "#E8E4DB", dtick: 1, zeroline: false },
+    yaxis: { title: "Group mean Impact →", range: [0.6, 5.4], gridcolor: "#E8E4DB", dtick: 1, zeroline: false },
     shapes: shapes,
     annotations: annotations,
     margin: { l: 60, r: 40, t: 40, b: 60 },
@@ -1933,13 +1938,14 @@ function renderDisagreeTable(tableId, tallied) {
     <th>Effort (&mu; &plusmn; SD)</th>
     <th>Impact (&mu; &plusmn; SD)</th>
     <th>Interest (&mu; &plusmn; SD)</th>
-    <th>n</th><th>Flag</th>
+    <th>n</th><th title="Disagreement level across the panel. Needs ≥2 responses to be meaningful.">Spread</th>
   </tr></thead><tbody>`;
   for (const t of sorted.slice(0, 15)) {
     const comp = (t.sE + t.sI + t.sT) / 3;
-    const flag = comp > 1.0 ? `<span class="flag high">HIGH</span>` :
-                 comp > 0.75 ? `<span class="flag med">MED</span>` :
-                               `<span class="flag low">LOW</span>`;
+    const flag = t.n < 2 ? `<span class="flag low" title="Need ≥2 responses for spread to be meaningful">—</span>` :
+                 comp > 1.0 ? `<span class="flag high" title="High disagreement — discuss at Meeting 2">HIGH</span>` :
+                 comp > 0.75 ? `<span class="flag med" title="Moderate disagreement">MED</span>` :
+                               `<span class="flag low" title="Panel is largely in agreement">LOW</span>`;
     html += `<tr>
       <td><b>${t.id}</b></td>
       <td>${t.title}</td>
