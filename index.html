@@ -800,7 +800,6 @@
       </div>
 
       <div id="r1-agg-status" class="small muted" style="margin-top:12px;"></div>
-      <div id="r1-drive-status" class="small" style="margin-top:6px;"></div>
     </div>
 
     <div class="card">
@@ -821,7 +820,6 @@
       </div>
 
       <div id="r2-agg-status" class="small muted" style="margin-top:12px;"></div>
-      <div id="r2-drive-status" class="small" style="margin-top:6px;"></div>
     </div>
 
     <div class="card">
@@ -859,7 +857,7 @@
 
     <div class="card">
       <h2>Backup / restore</h2>
-      <p class="small muted">Export aggregated submissions as a readable text file, or export JSON to restore later. Google Drive backup fires automatically on each aggregation.</p>
+      <p class="small muted">Export aggregated submissions as a readable text file for your records, or export JSON if you need to restore later.</p>
       <button class="submit-btn secondary" onclick="exportAllText()">Export all submissions (.txt)</button>
       <button class="submit-btn secondary" style="margin-left:8px;" onclick="exportAll()">Export JSON (for restore)</button>
       <details style="margin-top:10px;">
@@ -903,7 +901,6 @@ const CONFIG = {
 
   // Google Drive auto-backup webhook (Apps Script web app URL).
   // Paste your deployed web app URL here — leave blank to disable.
-  DRIVE_WEBHOOK:  "https://script.google.com/macros/s/AKfycbwBw_CqIDKfpYmM185lVJbFVjc9MQvPbqnB33cnyWg3N5Ea9oWNWkDDvmOTPRsIVMOkRQ/exec",
 
   // Convergence threshold — group SD at or below this is "converged" on that dimension
   SD_CONVERGE: 0.75,
@@ -1542,7 +1539,6 @@ function aggregateRound(round) {
   if (final.length > 0) {
     try { autoBackup(round, final); }
     catch (e) { console.warn("Auto-backup failed (non-fatal):", e); }
-    autoSaveToDrive(round, final);
   }
 
   const status = document.getElementById(`r${round}-agg-status`);
@@ -1642,59 +1638,6 @@ function formatSubmissionText(sub, round) {
   return lines.join("\n");
 }
 
-// ----------  GOOGLE DRIVE AUTO-BACKUP ----------
-// Uses a hidden form POST to bypass Chrome's file:// cross-origin fetch block.
-// The form opens in a tiny hidden iframe so no visible navigation occurs.
-// Sends one formatted-text entry per submission so the Apps Script can
-// create a separate Google Doc per panelist.
-function autoSaveToDrive(round, submissions) {
-  if (!CONFIG.DRIVE_WEBHOOK) return;
-  // Format each submission as readable text before sending.
-  const formatted = submissions.map(sub => ({
-    name: (sub.n || "Anonymous").trim(),
-    text: formatSubmissionText(sub, round)
-  }));
-  const payload = JSON.stringify({ round, submissions: formatted });
-  const el = document.getElementById(`r${round}-drive-status`);
-
-  // Create a one-time hidden iframe as the form target so no page navigation happens.
-  const iframeName = `drive-target-${Date.now()}`;
-  const iframe = document.createElement("iframe");
-  iframe.name = iframeName;
-  iframe.style.cssText = "display:none;width:0;height:0;border:none;";
-  document.body.appendChild(iframe);
-
-  // Build a hidden form that POSTs the JSON payload to the Apps Script webhook.
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = CONFIG.DRIVE_WEBHOOK;
-  form.target = iframeName;
-  form.style.display = "none";
-
-  const input = document.createElement("input");
-  input.type = "hidden";
-  input.name = "payload";
-  input.value = payload;
-  form.appendChild(input);
-  document.body.appendChild(form);
-
-  if (el) {
-    el.innerHTML = `☁️ Sending to Google Drive…`;
-    el.style.color = "var(--grey-dark)";
-  }
-
-  form.submit();
-
-  // Clean up after a short delay and update status.
-  setTimeout(() => {
-    try { document.body.removeChild(form); } catch(e) {}
-    try { document.body.removeChild(iframe); } catch(e) {}
-    if (el) {
-      el.innerHTML = `☁️ <strong>Sent to Google Drive</strong> — check your Drive folder to confirm.`;
-      el.style.color = "var(--teal-text)";
-    }
-  }, 3000);
-}
 
 // Export all submissions as a human-readable .txt file.
 function exportAllText() {
